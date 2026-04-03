@@ -43,7 +43,7 @@ export function registerBurnsTool(server: McpServer) {
         ];
 
         for (const b of d.burns) {
-          const who = b.ensName || b.username || `${b.from.slice(0, 8)}...`;
+          const who = b.ensName || b.username || b.from;
           lines.push(`- **${fmtToken(b.amount, "VVV")}** ${b.category} burn by ${who} — ${fmtAgo(b.timestamp)}`);
         }
 

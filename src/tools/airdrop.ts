@@ -59,7 +59,7 @@ export function registerAirdropTool(server: McpServer) {
         if (d.topLoyalists.length > 0) {
           lines.push("", `## Top Loyalists`);
           for (const l of d.topLoyalists.slice(0, 5)) {
-            const name = l.ensName || `${l.address.slice(0, 8)}...`;
+            const name = l.ensName || l.address;
             lines.push(`- **${name}**: airdrop ${fmtToken(l.airdropAmount)} → now ${fmtToken(l.currentSvvv, "sVVV")} (${l.growth.toLocaleString()}% growth)`);
           }
         }

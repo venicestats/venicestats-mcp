@@ -44,7 +44,7 @@ export function registerLeaderboardTool(server: McpServer) {
         ];
 
         for (const h of d.holders) {
-          const name = h.ensName || h.username || `${h.address.slice(0, 8)}...`;
+          const name = h.ensName || h.username || h.address;
           const lockPct = h.svvvBalance > 0 ? Math.round((h.svvvLocked / h.svvvBalance) * 100) : 0;
           lines.push(
             `${h.rank}. **${name}** — ${fmtToken(h.svvvBalance, "sVVV")} (${lockPct}% locked) | DIEM: ${fmtToken(h.diemStaked)} staked | Conviction: ${h.convictionScore.toLocaleString()}`,

@@ -53,7 +53,7 @@ export function registerDiemTool(server: McpServer) {
 
         lines.push("", `## Top 10 Minters`);
         for (const m of d.topMinters.slice(0, 10)) {
-          const name = m.ensName || `${m.address.slice(0, 8)}...`;
+          const name = m.ensName || m.address;
           const inference = m.inferencePerDay > 0 ? ` | $${Math.round(m.inferencePerDay)}/day inference` : "";
           lines.push(`- **${name}** (${m.badge}): ${fmtToken(m.outstandingDiem, "DIEM")} outstanding, ${fmtToken(m.svvvLocked, "sVVV")} locked, rate ${Math.round(m.burnRate)}${inference}`);
         }

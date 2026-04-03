@@ -64,7 +64,7 @@ export function registerLargeTradesTool(server: McpServer) {
         } else {
           for (const s of d.swaps) {
             const dir = s.direction === "buy" ? "🟢 BUY" : "🔴 SELL";
-            const name = s.traderName || `${s.trader.slice(0, 8)}...`;
+            const name = s.traderName || s.trader;
             const insider = s.isVesting ? " [INSIDER]" : "";
             const price = s.effectivePrice ? ` @ $${s.effectivePrice.toFixed(2)}` : "";
             lines.push(`- ${dir} ${fmtUsd(s.volumeUsd)} (${fmtToken(s.tokenAmount, s.tokenLabel)}${price}) via ${s.poolName} (${s.dex}) by ${name}${insider} — ${fmtAgo(s.timestamp)}`);

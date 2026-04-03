@@ -45,7 +45,7 @@ export function registerWalletTradesTool(server: McpServer) {
         const d = await apiGet<WalletSwapsResponse>("/api/wallet-swaps", { address });
 
         const lines = [
-          `## Trading History — ${address.slice(0, 8)}...${address.slice(-4)}`,
+          `## Trading History — ${address}`,
           `${d.total} trades total`,
           "",
         ];

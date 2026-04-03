@@ -88,7 +88,7 @@ export function registerInsiderFlowTool(server: McpServer) {
           ];
 
           for (const r of top) {
-            const name = r.name || `${r.address.slice(0, 8)}...`;
+            const name = r.name || r.address;
             const netFlow = r.buyVolume - r.sellVolume;
             const netLabel = netFlow >= 0 ? "net buyer" : "net seller";
             lines.push(`- **${name}** — ${r.behavior} | Claimed: ${fmtToken(r.claimed, "VVV")} | Sold: ${fmtToken(r.sellVolume)} | Retention: ${r.retention}% (${netLabel})`);

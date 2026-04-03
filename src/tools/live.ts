@@ -66,7 +66,7 @@ export function registerLiveTool(server: McpServer) {
 
         for (const e of d.events) {
           const label = TYPE_LABELS[e.type] || e.type.toUpperCase();
-          const name = e.ensName || e.username || `${e.address.slice(0, 8)}...`;
+          const name = e.ensName || e.username || e.address;
           const bot = e.botLabel ? ` [${e.botLabel}]` : "";
           const token = e.source === "swap"
             ? (e.type.includes("diem") ? "DIEM" : "VVV")
