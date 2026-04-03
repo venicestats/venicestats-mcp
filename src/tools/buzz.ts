@@ -25,16 +25,18 @@ interface BuzzResponse {
 export function registerBuzzTool(server: McpServer) {
   server.tool(
     "venicestats_buzz",
-    "Get recent articles, tweets, and videos about Venice.ai. A curated news feed of community content. Use when someone asks about Venice news, what people are saying, recent articles, or community discussion.",
+    "Get recent articles, tweets, and videos about Venice.ai. A curated news feed of community content. Use when someone asks about Venice news, what people are saying, recent articles, community discussion, or posts by a specific author.",
     {
       type: z.enum(["article", "video", "tweet"]).optional().describe("Filter by content type"),
+      author: z.string().optional().describe("Filter by author handle (e.g. 'gekko_eth', 'AskVenice')"),
       limit: z.number().int().min(1).max(20).default(10).describe("Number of items to return (1-20, default 10)"),
     },
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
-    async ({ type, limit }) => {
+    async ({ type, author, limit }) => {
       try {
         const params: Record<string, string | number> = { limit };
         if (type) params.type = type;
+        if (author) params.author = author;
 
         const d = await apiGet<BuzzResponse>("/api/buzz", params);
 
