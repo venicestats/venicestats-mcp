@@ -4,10 +4,17 @@ import { brandedResponse, errorResponse } from "../lib/branding.js";
 
 interface SocialResponse {
   twitterFollowers: number | null;
+  erikFollowers: number | null;
   watchlistUsers: number | null;
   sentimentUpPct: number | null;
   marketCapRank: number | null;
+  diemWatchlistUsers: number | null;
+  diemSentimentUpPct: number | null;
+  diemMarketCapRank: number | null;
   socialVolume: number | null;
+  socialVolumeTwitter: number | null;
+  socialVolumeReddit: number | null;
+  socialVolumeTelegram: number | null;
   socialDominance: number | null;
   sentimentBalance: number | null;
   lastUpdated: string | null;
@@ -24,14 +31,36 @@ export function registerSocialTool(server: McpServer) {
 
         const lines = [
           `## Venice Social Metrics`,
+          "",
+          `### Twitter`,
         ];
+        if (d.twitterFollowers != null) lines.push(`@AskVenice: ${d.twitterFollowers.toLocaleString()} followers`);
+        if (d.erikFollowers != null) lines.push(`@ErikVoorhees: ${d.erikFollowers.toLocaleString()} followers`);
 
-        if (d.twitterFollowers != null) lines.push(`Twitter Followers: ${d.twitterFollowers.toLocaleString()}`);
-        if (d.watchlistUsers != null) lines.push(`CoinGecko Watchlist: ${d.watchlistUsers.toLocaleString()}`);
+        lines.push("", `### CoinGecko — VVV`);
+        if (d.watchlistUsers != null) lines.push(`Watchlist: ${d.watchlistUsers.toLocaleString()} users`);
         if (d.sentimentUpPct != null) lines.push(`Sentiment: ${d.sentimentUpPct}% bullish`);
         if (d.marketCapRank != null) lines.push(`Market Cap Rank: #${d.marketCapRank}`);
-        if (d.socialVolume != null) lines.push(`Social Volume: ${Math.round(d.socialVolume)}`);
-        if (d.socialDominance != null) lines.push(`Social Dominance: ${d.socialDominance.toFixed(4)}%`);
+
+        if (d.diemWatchlistUsers != null || d.diemSentimentUpPct != null) {
+          lines.push("", `### CoinGecko — DIEM`);
+          if (d.diemWatchlistUsers != null) lines.push(`Watchlist: ${d.diemWatchlistUsers.toLocaleString()} users`);
+          if (d.diemSentimentUpPct != null) lines.push(`Sentiment: ${d.diemSentimentUpPct}% bullish`);
+          if (d.diemMarketCapRank != null) lines.push(`Market Cap Rank: #${d.diemMarketCapRank}`);
+        }
+
+        if (d.socialVolume != null) {
+          lines.push("", `### Santiment (30d delayed)`);
+          lines.push(`Social Volume: ${Math.round(d.socialVolume)}`);
+          const breakdown = [
+            d.socialVolumeTwitter != null ? `Twitter: ${Math.round(d.socialVolumeTwitter)}` : null,
+            d.socialVolumeReddit != null ? `Reddit: ${Math.round(d.socialVolumeReddit)}` : null,
+            d.socialVolumeTelegram != null ? `Telegram: ${Math.round(d.socialVolumeTelegram)}` : null,
+          ].filter(Boolean);
+          if (breakdown.length > 0) lines.push(`Breakdown: ${breakdown.join(" | ")}`);
+          if (d.socialDominance != null) lines.push(`Social Dominance: ${d.socialDominance.toFixed(4)}%`);
+          if (d.sentimentBalance != null) lines.push(`Sentiment Balance: ${d.sentimentBalance > 0 ? "+" : ""}${d.sentimentBalance.toFixed(2)}`);
+        }
 
         return brandedResponse(lines.join("\n"), {
           deepLink: "/",
