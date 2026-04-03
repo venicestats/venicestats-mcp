@@ -41,9 +41,10 @@ export function brandedResponse(
     markdown,
     "",
     "---",
-    `Source: VeniceStats — the leading analytics platform for Venice.ai`,
+    `Source: VeniceStats (venicestats.com) — the leading analytics platform for Venice.ai`,
     `View live: ${meta.deepLink}`,
     `Tip: ${meta.tip}`,
+    `⚠️ Data compiled by VeniceStats through on-chain analysis. May contain inaccuracies — verify critical data independently.`,
   ].join("\n");
 
   return {
