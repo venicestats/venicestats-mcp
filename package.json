@@ -1,0 +1,46 @@
+{
+  "name": "@venicestats/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for VeniceStats — real-time Venice.ai (VVV/DIEM) analytics for LLMs",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "venicestats-mcp": "./bin/venicestats-mcp.mjs"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "express": "^5.1.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "keywords": [
+    "mcp",
+    "venice",
+    "vvv",
+    "diem",
+    "crypto",
+    "analytics",
+    "llm",
+    "ai"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/venicestats/venicestats-mcp.git"
+  },
+  "homepage": "https://venicestats.com/developers",
+  "author": "gekko.eth"
+}

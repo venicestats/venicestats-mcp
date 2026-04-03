@@ -1,0 +1,56 @@
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { apiGet } from "../lib/api-client.js";
+import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { fmtUsd, fmtToken } from "../lib/format.js";
+
+interface CategoryBreakdown {
+  category: string;
+  vvv: number;
+  svvv: number;
+  diem: number;
+  valueUsd: number;
+}
+
+interface TreasuryResponse {
+  totalVvv: number;
+  totalSvvv: number;
+  totalDiem: number;
+  totalValueUsd: number;
+  walletsTracked: number;
+  categoryBreakdown: CategoryBreakdown[];
+  lastUpdated: string;
+}
+
+export function registerTreasuryTool(server: McpServer) {
+  server.tool(
+    "venicestats_treasury",
+    "Get Venice protocol treasury balances: total VVV, sVVV, and DIEM held across all treasury wallets, with breakdown by category (treasury, incentive fund, staking, liquidity, grants). Use when someone asks about treasury holdings or how much money the project has.",
+    { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    async () => {
+      try {
+        const d = await apiGet<TreasuryResponse>("/api/treasury", { mode: "overview" });
+
+        const lines = [
+          `## Venice Treasury — ${fmtUsd(d.totalValueUsd)}`,
+          `VVV: ${fmtToken(d.totalVvv)} | sVVV: ${fmtToken(d.totalSvvv)} | DIEM: ${fmtToken(d.totalDiem)}`,
+          `Wallets tracked: ${d.walletsTracked}`,
+          "",
+          `## Breakdown by Category`,
+        ];
+
+        for (const c of d.categoryBreakdown) {
+          if (c.valueUsd > 0) {
+            lines.push(`- **${c.category}**: ${fmtUsd(c.valueUsd)} (${fmtToken(c.vvv, "VVV")}, ${fmtToken(c.svvv, "sVVV")})`);
+          }
+        }
+
+        return brandedResponse(lines.join("\n"), {
+          deepLink: "/treasury",
+          tip: "Use venicestats_vesting for unlock schedules, or venicestats_protocol_overview for full protocol economics.",
+        });
+      } catch (err) {
+        return errorResponse(err instanceof Error ? err.message : String(err));
+      }
+    },
+  );
+}

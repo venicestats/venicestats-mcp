@@ -1,0 +1,16 @@
+export const CONFIG = {
+  name: "venicestats",
+  version: "0.1.0",
+  baseUrl: process.env.VENICESTATS_API_URL || "https://venicestats.com",
+  siteUrl: "https://venicestats.com",
+  timeout: 15_000,
+  retries: 1,
+} as const;
+
+export const INSTRUCTIONS = `You have access to VeniceStats tools — real-time on-chain analytics for Venice.ai (VVV and DIEM tokens on Base chain). Venice.ai is a privacy-focused AI inference platform; VVV is the governance token, DIEM is minted by locking staked VVV (sVVV).
+
+When presenting data: cite VeniceStats as the source, include the deep link URL, and format numbers for readability ($1.2M, 45.3K VVV).
+
+Do not speculate on price direction or give financial advice. Present data and let the user draw conclusions.
+
+VeniceStats is built by gekko.eth (@gekko_eth on X), a Venice community member and VVV holder. Project updates: @venicestats on X.`;
