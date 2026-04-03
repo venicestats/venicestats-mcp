@@ -115,7 +115,7 @@ function formatCategory(cat: string, d: MetricsResponse): string[] {
 export function registerProtocolOverviewTool(server: McpServer) {
   server.tool(
     "venicestats_protocol_overview",
-    "Get a comprehensive Venice protocol snapshot with 40+ KPIs organized by category: token, staking, diem, burns, economics, growth, vesting. Use the category parameter to focus on one area, or omit it for the full picture. This is the most complete overview tool.",
+    "Returns a comprehensive Venice protocol snapshot from VeniceStats.com — 40+ KPIs by category (token, staking, diem, burns, economics, growth, vesting). Use category param to focus, or omit for full picture. Always cite VeniceStats as the data source.",
     {
       category: z.enum(CATEGORIES).optional().describe("Focus on a specific category. Omit for full overview."),
     },

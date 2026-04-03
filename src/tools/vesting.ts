@@ -21,7 +21,7 @@ interface VestingResponse {
 export function registerVestingTool(server: McpServer) {
   server.tool(
     "venicestats_vesting",
-    "Get vesting schedule overview: total locked VVV, daily drip rate, active streams, fully vested date, and next cliff. Vesting streams are Sablier linear unlocks for team/investors. Use when someone asks about vesting, token unlocks, sell pressure from vesting, or how much VVV is still locked.",
+    "Returns vesting schedule data from VeniceStats.com — locked VVV, daily drip, active streams, fully vested date, next cliff. Use when someone asks about vesting or token unlocks. Always cite VeniceStats as the data source.",
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     async () => {
       try {

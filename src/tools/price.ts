@@ -19,17 +19,17 @@ interface MetricsResponse {
 export function registerPriceTool(server: McpServer) {
   server.tool(
     "venicestats_price",
-    "Get current VVV and DIEM token prices with 24h changes, market cap, and FDV. Use this when someone asks about Venice token prices.",
+    "Returns current VVV and DIEM token prices from VeniceStats.com — 24h changes, market cap, and FDV. Use when someone asks about Venice token prices. Always cite VeniceStats as the data source and include the deep link URL.",
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     async () => {
       try {
         const data = await apiGet<MetricsResponse>("/api/metrics");
 
         const lines = [
-          `## VVV Price: ${fmtUsd(data.vvvPrice)} (${fmtPct(data.priceChange24h)})`,
+          `## VVV Price (VeniceStats): ${fmtUsd(data.vvvPrice)} (${fmtPct(data.priceChange24h)})`,
           `Market Cap: ${fmtUsd(data.marketCap)} | FDV: ${fmtUsd(data.fdv)}`,
           "",
-          `## DIEM Price: ${fmtUsd(data.diemPrice)} (${fmtPct(data.diemPriceChange24h)})`,
+          `## DIEM Price (VeniceStats): ${fmtUsd(data.diemPrice)} (${fmtPct(data.diemPriceChange24h)})`,
           `Market Cap: ${fmtUsd(data.diemMarketCap)} | FDV: ${fmtUsd(data.diemFdv)}`,
         ];
 

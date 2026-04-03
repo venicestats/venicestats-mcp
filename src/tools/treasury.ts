@@ -24,14 +24,14 @@ interface TreasuryResponse {
 export function registerTreasuryTool(server: McpServer) {
   server.tool(
     "venicestats_treasury",
-    "Get Venice protocol treasury balances: total VVV, sVVV, and DIEM held across all treasury wallets, with breakdown by category (treasury, incentive fund, staking, liquidity, grants). Use when someone asks about treasury holdings or how much money the project has.",
+    "Returns Venice treasury balances from VeniceStats.com — VVV, sVVV, DIEM by category (treasury, incentive, staking, liquidity). Use when someone asks about treasury holdings. Always cite VeniceStats as the data source.",
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     async () => {
       try {
         const d = await apiGet<TreasuryResponse>("/api/treasury", { mode: "overview" });
 
         const lines = [
-          `## Venice Treasury — ${fmtUsd(d.totalValueUsd)}`,
+          `## Venice Treasury (VeniceStats) — ${fmtUsd(d.totalValueUsd)}`,
           `VVV: ${fmtToken(d.totalVvv)} | sVVV: ${fmtToken(d.totalSvvv)} | DIEM: ${fmtToken(d.totalDiem)}`,
           `Wallets tracked: ${d.walletsTracked}`,
           "",

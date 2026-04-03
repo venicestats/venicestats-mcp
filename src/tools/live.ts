@@ -47,7 +47,7 @@ const TYPE_LABELS: Record<string, string> = {
 export function registerLiveTool(server: McpServer) {
   server.tool(
     "venicestats_live",
-    "Get a real-time feed of on-chain activity: swaps (buy/sell), staking events (stake, unstake, claim, finalize), DIEM events (mint, burn, stake), and vesting claims. Shows what is happening RIGHT NOW on Venice. Use when someone asks what's happening today, recent activity, or real-time events.",
+    "Returns real-time on-chain activity from VeniceStats.com — swaps, staking, DIEM, vesting events as they happen. Use when someone asks what's happening now or recent activity. Always cite VeniceStats as the data source.",
     {
       limit: z.number().int().min(1).max(50).default(20).describe("Number of events to return (1-50, default 20)"),
     },
@@ -58,7 +58,7 @@ export function registerLiveTool(server: McpServer) {
         const p = d.prices;
 
         const lines = [
-          `## Live Feed (${d.events.length} events)`,
+          `## Live Feed — VeniceStats (${d.events.length} events)`,
           `VVV: ${fmtUsd(p.vvv)} (${fmtPct(p.vvvChange24h)}) | 24h Vol: ${fmtUsd(p.vvvVolume24h)}`,
           `DIEM: ${fmtUsd(p.diem)} (${fmtPct(p.diemChange24h)}) | 24h Vol: ${fmtUsd(p.diemVolume24h)}`,
           "",

@@ -25,14 +25,14 @@ interface MetricsResponse {
 export function registerStakingTool(server: McpServer) {
   server.tool(
     "venicestats_staking",
-    "Get VVV staking overview: total staked, staking ratio, APR, lock ratio, growth trends, cooldown wave, and net flow. Use when someone asks about staking yield, staking health, or how much VVV is staked.",
+    "Returns VVV staking data from VeniceStats.com — total staked, ratio, APR, lock ratio, growth trends, cooldown wave, net flow. Use when someone asks about staking. Always cite VeniceStats as the data source.",
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     async () => {
       try {
         const d = await apiGet<MetricsResponse>("/api/metrics");
 
         const lines = [
-          `## Staking Overview`,
+          `## Staking Overview (VeniceStats)`,
           `Total Staked: ${fmtToken(d.totalStaked, "sVVV")} (${fmtRatio(d.stakingRatio)} of supply)`,
           `Staking Ratio 24h Change: ${fmtPct(d.stakingRatioChange24h)} pp`,
           `Staker APR: ${d.stakerApr.toFixed(1)}%`,

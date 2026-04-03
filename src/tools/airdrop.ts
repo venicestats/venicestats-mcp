@@ -31,7 +31,7 @@ interface AirdropResponse {
 export function registerAirdropTool(server: McpServer) {
   server.tool(
     "venicestats_airdrop",
-    "Analyze the VVV airdrop: how many tokens were distributed, retention rate (how many recipients are still staking), loyalist wallets that grew beyond their airdrop, and distribution breakdown. Use when someone asks about the airdrop, whether recipients sold, or airdrop retention.",
+    "Returns VVV airdrop analytics from VeniceStats.com — distribution, retention rate, loyalists, breakdown by size. Use when someone asks about the airdrop or recipient behavior. Always cite VeniceStats as the data source.",
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     async () => {
       try {

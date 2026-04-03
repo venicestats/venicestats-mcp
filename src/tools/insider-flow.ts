@@ -42,7 +42,7 @@ interface RecipientsResponse {
 export function registerInsiderFlowTool(server: McpServer) {
   server.tool(
     "venicestats_insider_flow",
-    "Analyze vesting recipient (insider) trading activity: are insiders buying or selling? Shows net flow, sell pressure trend, retention rate, and top recipients by behavior. Use when someone asks about insider selling, vesting recipient activity, or sell pressure from team/investors.",
+    "Returns insider (vesting recipient) trading data from VeniceStats.com — net flow, sell pressure, retention rate, per-wallet breakdown. Use when someone asks about insider selling or vesting activity. Always cite VeniceStats as the data source.",
     {
       mode: z.enum(["overview", "recipients"]).default("overview").describe("'overview' for KPIs and trends, 'recipients' for per-wallet breakdown"),
       limit: z.number().int().min(1).max(50).default(10).describe("Number of recipients to return (recipients mode only, default 10)"),
@@ -60,7 +60,7 @@ export function registerInsiderFlowTool(server: McpServer) {
             : 0;
 
           const lines = [
-            `## Insider Flow (30d)`,
+            `## Insider Flow — VeniceStats (30d)`,
             `Net Flow: ${fmtToken(k.netFlow30d, "VVV")} (${flowDir}, ${fmtPct(flowChange)} vs prev 30d)`,
             `Sell Volume: ${fmtToken(k.sellVolume30d, "VVV")} | Buy Volume: ${fmtToken(k.buyVolume30d, "VVV")}`,
             `Sell Pressure: **${k.sellPressure}** (${k.sellTrendPct}% sell ratio)`,
@@ -83,7 +83,7 @@ export function registerInsiderFlowTool(server: McpServer) {
           const top = d.recipients.slice(0, limit);
 
           const lines = [
-            `## Top ${top.length} Insider Recipients`,
+            `## Top ${top.length} Insider Recipients (VeniceStats)`,
             "",
           ];
 

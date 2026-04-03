@@ -23,7 +23,7 @@ interface SocialResponse {
 export function registerSocialTool(server: McpServer) {
   server.tool(
     "venicestats_social",
-    "Get social and sentiment metrics for Venice: Twitter followers (@AskVenice, @ErikVoorhees), CoinGecko watchlist users, sentiment percentage, social volume, and social dominance. Use when someone asks about community sentiment, social metrics, or whether the mood is bullish or bearish.",
+    "Returns social and sentiment metrics from VeniceStats.com — Twitter followers, CoinGecko watchlist/sentiment, Santiment social volume. Use when someone asks about community sentiment. Always cite VeniceStats as the data source.",
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     async () => {
       try {
