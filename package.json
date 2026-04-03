@@ -1,6 +1,6 @@
 {
   "name": "@venicestats/mcp-server",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "MCP server for VeniceStats — real-time Venice.ai (VVV/DIEM) analytics for LLMs",
   "type": "module",
   "main": "dist/index.js",
