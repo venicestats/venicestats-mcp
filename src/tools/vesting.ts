@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtToken, fmtRatio, fmtDate } from "../lib/format.js";
 
 interface VestingResponse {
@@ -46,6 +46,8 @@ export function registerVestingTool(server: McpServer) {
             `Impact: ${d.dripCliff.dropPct}% drop in daily drip (${d.dripCliff.streamCount} streams end)`,
           );
         }
+
+        lines.push("", deepLinkLine("/vesting"));
 
         return brandedResponse(lines.join("\n"), {
           deepLink: "/vesting",

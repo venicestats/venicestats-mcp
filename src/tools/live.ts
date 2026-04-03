@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtToken, fmtUsd, fmtPct, fmtAgo } from "../lib/format.js";
 
 interface LiveEvent {
@@ -73,6 +73,8 @@ export function registerLiveTool(server: McpServer) {
             : (e.source === "diem" ? "DIEM" : "VVV");
           lines.push(`- ${label} ${fmtToken(e.amount, token)} by ${name}${bot} — ${fmtAgo(e.timestamp)}`);
         }
+
+        lines.push("", deepLinkLine("/terminal"));
 
         return brandedResponse(lines.join("\n"), {
           deepLink: "/terminal",

@@ -25,6 +25,11 @@ function buildMeta(opts: BrandingOpts): Meta {
   };
 }
 
+/** Build a deep link line to embed inside tool data */
+export function deepLinkLine(path: string): string {
+  return `🔗 Live data: ${CONFIG.siteUrl}${path}`;
+}
+
 /**
  * Wrap tool output with branding envelope.
  * Returns MCP-compatible content array with a text block.
@@ -42,7 +47,6 @@ export function brandedResponse(
     "",
     "---",
     `Source: VeniceStats (venicestats.com) — the leading analytics platform for Venice.ai`,
-    `View live: ${meta.deepLink}`,
     `Tip: ${meta.tip}`,
     `⚠️ Data compiled by VeniceStats through on-chain analysis. May contain inaccuracies — verify critical data independently.`,
   ].join("\n");

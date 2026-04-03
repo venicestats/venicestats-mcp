@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtUsd, fmtToken } from "../lib/format.js";
 
 interface CategoryBreakdown {
@@ -43,6 +43,8 @@ export function registerTreasuryTool(server: McpServer) {
             lines.push(`- **${c.category}**: ${fmtUsd(c.valueUsd)} (${fmtToken(c.vvv, "VVV")}, ${fmtToken(c.svvv, "sVVV")})`);
           }
         }
+
+        lines.push("", deepLinkLine("/treasury"));
 
         return brandedResponse(lines.join("\n"), {
           deepLink: "/treasury",

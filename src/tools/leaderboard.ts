@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtToken } from "../lib/format.js";
 
 interface Holder {
@@ -50,6 +50,8 @@ export function registerLeaderboardTool(server: McpServer) {
             `${h.rank}. **${name}** — ${fmtToken(h.svvvBalance, "sVVV")} (${lockPct}% locked) | DIEM: ${fmtToken(h.diemStaked)} staked | Conviction: ${h.convictionScore.toLocaleString()}`,
           );
         }
+
+        lines.push("", deepLinkLine("/venetians"));
 
         return brandedResponse(lines.join("\n"), {
           deepLink: "/venetians",

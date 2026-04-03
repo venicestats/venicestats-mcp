@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtUsd, fmtPct } from "../lib/format.js";
 
 interface MetricsResponse {
@@ -32,6 +32,8 @@ export function registerPriceTool(server: McpServer) {
           `## DIEM Price (VeniceStats): ${fmtUsd(data.diemPrice)} (${fmtPct(data.diemPriceChange24h)})`,
           `Market Cap: ${fmtUsd(data.diemMarketCap)} | FDV: ${fmtUsd(data.diemFdv)}`,
         ];
+
+        lines.push("", deepLinkLine("/"));
 
         if (data.priceStale) {
           lines.push("", "⚠️ Price data may be stale — last updated: " + (data.priceLastUpdated ?? "unknown"));

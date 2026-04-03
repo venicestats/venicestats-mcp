@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtToken, fmtPct } from "../lib/format.js";
 
 interface AirdropResponse {
@@ -63,6 +63,8 @@ export function registerAirdropTool(server: McpServer) {
             lines.push(`- **${name}**: airdrop ${fmtToken(l.airdropAmount)} → now ${fmtToken(l.currentSvvv, "sVVV")} (${l.growth.toLocaleString()}% growth)`);
           }
         }
+
+        lines.push("", deepLinkLine("/airdrop"));
 
         return brandedResponse(lines.join("\n"), {
           deepLink: "/airdrop",

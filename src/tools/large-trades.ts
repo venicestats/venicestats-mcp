@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtUsd, fmtToken, fmtAgo } from "../lib/format.js";
 
 interface Swap {
@@ -70,6 +70,8 @@ export function registerLargeTradesTool(server: McpServer) {
             lines.push(`- ${dir} ${fmtUsd(s.volumeUsd)} (${fmtToken(s.tokenAmount, s.tokenLabel)}${price}) via ${s.poolName} (${s.dex}) by ${name}${insider} — ${fmtAgo(s.timestamp)}`);
           }
         }
+
+        lines.push("", deepLinkLine(`/markets?token=${token}&period=${period}`));
 
         return brandedResponse(lines.join("\n"), {
           deepLink: `/markets?token=${token}&period=${period}`,

@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtToken, fmtRatio, fmtPct } from "../lib/format.js";
 
 interface MetricsResponse {
@@ -49,6 +49,8 @@ export function registerStakingTool(server: McpServer) {
           "",
           `## Cooldown Wave`,
           `${fmtToken(d.cooldownVvv, "VVV")} in cooldown across ${d.cooldownWallets} wallets`,
+          "",
+          deepLinkLine("/staking"),
         ];
 
         return brandedResponse(lines.join("\n"), {

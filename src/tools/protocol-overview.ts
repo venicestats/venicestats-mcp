@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtUsd, fmtToken, fmtPct, fmtRatio } from "../lib/format.js";
 
 interface MetricsResponse {
@@ -126,6 +126,7 @@ export function registerProtocolOverviewTool(server: McpServer) {
 
         const cats = category ? [category] : [...CATEGORIES];
         const sections = cats.flatMap((c) => [...formatCategory(c, d), ""]);
+        sections.push(deepLinkLine("/"));
 
         return brandedResponse(sections.join("\n"), {
           deepLink: "/",

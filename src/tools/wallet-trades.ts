@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtUsd, fmtToken, fmtAgo } from "../lib/format.js";
 
 interface Swap {
@@ -80,6 +80,8 @@ export function registerWalletTradesTool(server: McpServer) {
             lines.push(`- ${dir} ${fmtToken(s.amount, s.token)}${price} (${fmtUsd(s.volumeUsd)}) via ${s.via} — ${fmtAgo(s.timestamp)}`);
           }
         }
+
+        lines.push("", deepLinkLine(`/wallet/${address}`));
 
         return brandedResponse(lines.join("\n"), {
           deepLink: `/wallet/${address}`,

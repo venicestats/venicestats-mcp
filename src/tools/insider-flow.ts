@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtToken, fmtPct } from "../lib/format.js";
 
 interface InsiderKpis {
@@ -72,6 +72,8 @@ export function registerInsiderFlowTool(server: McpServer) {
             `## Activity`,
             `Active Traders: ${k.activeTraders7d} (7d) / ${k.activeTraders30d} (30d)`,
             `Total Trades (30d): ${k.totalTrades30d}`,
+            "",
+            deepLinkLine("/vesting"),
           ];
 
           return brandedResponse(lines.join("\n"), {
@@ -93,6 +95,8 @@ export function registerInsiderFlowTool(server: McpServer) {
             const netLabel = netFlow >= 0 ? "net buyer" : "net seller";
             lines.push(`- **${name}** — ${r.behavior} | Claimed: ${fmtToken(r.claimed, "VVV")} | Sold: ${fmtToken(r.sellVolume)} | Retention: ${r.retention}% (${netLabel})`);
           }
+
+          lines.push("", deepLinkLine("/vesting"));
 
           return brandedResponse(lines.join("\n"), {
             deepLink: "/vesting",

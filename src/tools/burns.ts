@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtToken, fmtAgo } from "../lib/format.js";
 
 interface Burn {
@@ -46,6 +46,8 @@ export function registerBurnsTool(server: McpServer) {
           const who = b.ensName || b.username || b.from;
           lines.push(`- **${fmtToken(b.amount, "VVV")}** ${b.category} burn by ${who} — ${fmtAgo(b.timestamp)}`);
         }
+
+        lines.push("", deepLinkLine("/burns"));
 
         return brandedResponse(lines.join("\n"), {
           deepLink: "/burns",

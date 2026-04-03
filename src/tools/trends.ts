@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtDate } from "../lib/format.js";
 
 const METRICS = [
@@ -104,6 +104,8 @@ export function registerTrendsTool(server: McpServer) {
 
         const label = METRIC_LABELS[metric] || metric;
         const lines = summarizeSeries(series, label);
+
+        lines.push("", deepLinkLine("/"));
 
         return brandedResponse(lines.join("\n"), {
           deepLink: "/",

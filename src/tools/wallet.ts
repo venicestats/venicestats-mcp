@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtToken, fmtUsd, fmtRatio } from "../lib/format.js";
 
 interface Badge {
@@ -82,6 +82,8 @@ export function registerWalletTool(server: McpServer) {
           `## Chronicle`,
           d.chronicle,
         ];
+
+        lines.push("", deepLinkLine(`/wallet/${address}`));
 
         if (d.nextGoals.length > 0) {
           lines.push("", `## Next Goals`);

@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtToken, fmtUsd } from "../lib/format.js";
 
 interface Cohort {
@@ -57,6 +57,8 @@ export function registerDiemTool(server: McpServer) {
           const inference = m.inferencePerDay > 0 ? ` | $${Math.round(m.inferencePerDay)}/day inference` : "";
           lines.push(`- **${name}** (${m.badge}): ${fmtToken(m.outstandingDiem, "DIEM")} outstanding, ${fmtToken(m.svvvLocked, "sVVV")} locked, rate ${Math.round(m.burnRate)}${inference}`);
         }
+
+        lines.push("", deepLinkLine("/diem"));
 
         return brandedResponse(lines.join("\n"), {
           deepLink: "/diem",

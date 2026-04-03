@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtUsd, fmtPct } from "../lib/format.js";
 
 interface Pool {
@@ -61,6 +61,8 @@ export function registerMarketVolumeTool(server: McpServer) {
           ...d.pools
             .filter((p) => p.volume > 0)
             .map((p) => `- **${p.name}** (${p.dex}): ${fmtUsd(p.volume)} (${p.volumePct}%) — ${p.swaps} swaps, ${p.buyPct}% buy`),
+          "",
+          deepLinkLine(`/markets?token=${token}&period=${period}`),
         ];
 
         return brandedResponse(lines.join("\n"), {

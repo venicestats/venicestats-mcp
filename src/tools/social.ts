@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { apiGet, ApiError } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 
 interface SocialResponse {
   twitterFollowers: number | null;
@@ -61,6 +61,8 @@ export function registerSocialTool(server: McpServer) {
           if (d.socialDominance != null) lines.push(`Social Dominance: ${d.socialDominance.toFixed(4)}%`);
           if (d.sentimentBalance != null) lines.push(`Sentiment Balance: ${d.sentimentBalance > 0 ? "+" : ""}${d.sentimentBalance.toFixed(2)}`);
         }
+
+        lines.push("", deepLinkLine("/"));
 
         return brandedResponse(lines.join("\n"), {
           deepLink: "/",

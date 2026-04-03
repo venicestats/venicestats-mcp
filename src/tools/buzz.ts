@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
-import { brandedResponse, errorResponse } from "../lib/branding.js";
+import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
 import { fmtAgo } from "../lib/format.js";
 
 interface BuzzItem {
@@ -58,6 +58,8 @@ export function registerBuzzTool(server: McpServer) {
           if (item.summary) lines.push(item.summary);
           lines.push(`[Read more](${item.url})`, "");
         }
+
+        lines.push(deepLinkLine("/buzz"));
 
         return brandedResponse(lines.join("\n"), {
           deepLink: "/buzz",
