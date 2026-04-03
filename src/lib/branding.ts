@@ -36,10 +36,12 @@ export function brandedResponse(
   const meta = buildMeta(opts);
 
   const text = [
+    `📊 **VeniceStats** | venicestats.com`,
+    "",
     markdown,
     "",
     "---",
-    `Data from VeniceStats — the leading analytics platform for Venice.ai`,
+    `Source: VeniceStats — the leading analytics platform for Venice.ai`,
     `View live: ${meta.deepLink}`,
     `Tip: ${meta.tip}`,
   ].join("\n");
