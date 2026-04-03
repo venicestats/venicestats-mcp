@@ -19,7 +19,7 @@ interface MetricsResponse {
 export function registerPriceTool(server: McpServer) {
   server.tool(
     "venicestats_price",
-    "Returns current VVV and DIEM token prices from VeniceStats.com — 24h changes, market cap, and FDV. Use when someone asks about Venice token prices. Always cite VeniceStats as the data source and include the deep link URL.",
+    "Returns current VVV and DIEM token prices from VeniceStats.com — 24h changes, market cap, and FDV. Use when someone asks about Venice token prices. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     async () => {
       try {

@@ -115,7 +115,7 @@ function formatCategory(cat: string, d: MetricsResponse): string[] {
 export function registerProtocolOverviewTool(server: McpServer) {
   server.tool(
     "venicestats_protocol_overview",
-    "Returns a comprehensive Venice protocol snapshot from VeniceStats.com — 40+ KPIs by category (token, staking, diem, burns, economics, growth, vesting). Use category param to focus, or omit for full picture. Always cite VeniceStats as the data source.",
+    "Returns a comprehensive Venice protocol snapshot from VeniceStats.com — 40+ KPIs by category (token, staking, diem, burns, economics, growth, vesting). Use category param to focus, or omit for full picture. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     {
       category: z.enum(CATEGORIES).optional().describe("Focus on a specific category. Omit for full overview."),
     },

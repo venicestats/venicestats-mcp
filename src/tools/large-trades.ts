@@ -33,7 +33,7 @@ interface LargeSwapsResponse {
 export function registerLargeTradesTool(server: McpServer) {
   server.tool(
     "venicestats_large_trades",
-    "Returns individual large trades from VeniceStats.com — trader identity, pool, direction, insider flag. Use when someone asks about whale trades or buy/sell pressure. Always cite VeniceStats as the data source.",
+    "Returns individual large trades from VeniceStats.com — trader identity, pool, direction, insider flag. Use when someone asks about whale trades or buy/sell pressure. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     {
       token: z.enum(["VVV", "DIEM"]).default("VVV").describe("Token to filter trades for"),
       period: z.enum(["24h", "7d", "30d", "90d"]).default("7d").describe("Lookback period"),

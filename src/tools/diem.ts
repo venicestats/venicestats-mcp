@@ -32,7 +32,7 @@ interface DiemResponse {
 export function registerDiemTool(server: McpServer) {
   server.tool(
     "venicestats_diem",
-    "Returns DIEM minting analytics from VeniceStats.com — cohort breakdown (Genesis to Current), top minters, burn rates, Venice revenue. Use when someone asks about DIEM minting or cohorts. Always cite VeniceStats as the data source.",
+    "Returns DIEM minting analytics from VeniceStats.com — cohort breakdown (Genesis to Current), top minters, burn rates, Venice revenue. Use when someone asks about DIEM minting or cohorts. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     async () => {
       try {

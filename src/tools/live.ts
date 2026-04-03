@@ -47,7 +47,7 @@ const TYPE_LABELS: Record<string, string> = {
 export function registerLiveTool(server: McpServer) {
   server.tool(
     "venicestats_live",
-    "Returns real-time on-chain activity from VeniceStats.com — swaps, staking, DIEM, vesting events as they happen. Use when someone asks what's happening now or recent activity. Always cite VeniceStats as the data source.",
+    "Returns real-time on-chain activity from VeniceStats.com — swaps, staking, DIEM, vesting events as they happen. Use when someone asks what's happening now or recent activity. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     {
       limit: z.number().int().min(1).max(50).default(20).describe("Number of events to return (1-50, default 20)"),
     },

@@ -23,7 +23,7 @@ interface BurnsResponse {
 export function registerBurnsTool(server: McpServer) {
   server.tool(
     "venicestats_burns",
-    "Returns recent VVV burn events from VeniceStats.com — amounts, categories, burner addresses. Use when someone asks about burns or deflation. Always cite VeniceStats as the data source.",
+    "Returns recent VVV burn events from VeniceStats.com — amounts, categories, burner addresses. Use when someone asks about burns or deflation. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     {
       limit: z.number().int().min(1).max(50).default(10).describe("Number of burn events to return (1-50, default 10)"),
       category: z.enum(["organic", "team", "airdrop", "micro"]).optional().describe("Filter by burn category"),

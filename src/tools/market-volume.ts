@@ -34,7 +34,7 @@ interface MarketsResponse {
 export function registerMarketVolumeTool(server: McpServer) {
   server.tool(
     "venicestats_market_volume",
-    "Returns DEX trading volume from VeniceStats.com — volume by pool (Aerodrome, Uniswap, RFQ), buy/sell ratio, trader count. Use when someone asks about trading activity or volume. Always cite VeniceStats as the data source.",
+    "Returns DEX trading volume from VeniceStats.com — volume by pool (Aerodrome, Uniswap, RFQ), buy/sell ratio, trader count. Use when someone asks about trading activity or volume. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     {
       token: z.enum(["VVV", "DIEM"]).default("VVV").describe("Token to view market data for"),
       period: z.enum(["24h", "7d", "30d", "90d", "1y", "all"]).default("24h").describe("Lookback period"),

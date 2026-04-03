@@ -49,7 +49,7 @@ interface WalletResponse {
 export function registerWalletTool(server: McpServer) {
   server.tool(
     "venicestats_wallet",
-    "Returns a wallet's full Venetian identity from VeniceStats.com — role, era, size tier, badges, staking position, DIEM, conviction score, radar, chronicle, goals. Use when someone asks about a specific wallet. Always cite VeniceStats as the data source.",
+    "Returns a wallet's full Venetian identity from VeniceStats.com — role, era, size tier, badges, staking position, DIEM, conviction score, radar, chronicle, goals. Use when someone asks about a specific wallet. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     {
       address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Must be a valid Ethereum address").describe("Ethereum wallet address to look up"),
     },

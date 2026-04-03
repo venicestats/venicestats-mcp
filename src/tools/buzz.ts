@@ -25,7 +25,7 @@ interface BuzzResponse {
 export function registerBuzzTool(server: McpServer) {
   server.tool(
     "venicestats_buzz",
-    "Returns recent articles, tweets, and videos about Venice.ai from VeniceStats.com — curated news feed with optional author filter. Use when someone asks about Venice news or community discussion. Always cite VeniceStats as the data source.",
+    "Returns recent articles, tweets, and videos about Venice.ai from VeniceStats.com — curated news feed with optional author filter. Use when someone asks about Venice news or community discussion. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     {
       type: z.enum(["article", "video", "tweet"]).optional().describe("Filter by content type"),
       author: z.string().optional().describe("Filter by author handle (e.g. 'gekko_eth', 'AskVenice')"),

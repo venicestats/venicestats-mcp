@@ -25,7 +25,7 @@ interface HoldersResponse {
 export function registerLeaderboardTool(server: McpServer) {
   server.tool(
     "venicestats_leaderboard",
-    "Returns top VVV holders from VeniceStats.com — ranked by sVVV, DIEM, conviction, or locked. Use when someone asks about biggest holders or leaderboard. Always cite VeniceStats as the data source.",
+    "Returns top VVV holders from VeniceStats.com — ranked by sVVV, DIEM, conviction, or locked. Use when someone asks about biggest holders or leaderboard. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     {
       sort: z.enum(["svvv", "diem", "conviction", "locked"]).default("svvv").describe("Sort by: svvv (staked balance), diem (DIEM staked), conviction (conviction score), locked (locked sVVV)"),
       limit: z.number().int().min(1).max(25).default(10).describe("Number of holders to return (1-25, default 10)"),

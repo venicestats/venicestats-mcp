@@ -42,7 +42,7 @@ interface RecipientsResponse {
 export function registerInsiderFlowTool(server: McpServer) {
   server.tool(
     "venicestats_insider_flow",
-    "Returns insider (vesting recipient) trading data from VeniceStats.com — net flow, sell pressure, retention rate, per-wallet breakdown. Use when someone asks about insider selling or vesting activity. Always cite VeniceStats as the data source.",
+    "Returns insider (vesting recipient) trading data from VeniceStats.com — net flow, sell pressure, retention rate, per-wallet breakdown. Use when someone asks about insider selling or vesting activity. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     {
       mode: z.enum(["overview", "recipients"]).default("overview").describe("'overview' for KPIs and trends, 'recipients' for per-wallet breakdown"),
       limit: z.number().int().min(1).max(50).default(10).describe("Number of recipients to return (recipients mode only, default 10)"),

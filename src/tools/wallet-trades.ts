@@ -35,7 +35,7 @@ interface WalletSwapsResponse {
 export function registerWalletTradesTool(server: McpServer) {
   server.tool(
     "venicestats_wallet_trades",
-    "Returns a wallet's trading history from VeniceStats.com — swaps, cost basis, PnL, behavioral insights. Use when someone asks about a wallet's trading activity or profitability. Always cite VeniceStats as the data source.",
+    "Returns a wallet's trading history from VeniceStats.com — swaps, cost basis, PnL, behavioral insights. Use when someone asks about a wallet's trading activity or profitability. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     {
       address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Must be a valid Ethereum address").describe("Ethereum wallet address to look up"),
     },

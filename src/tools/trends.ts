@@ -84,7 +84,7 @@ function summarizeSeries(points: DataPoint[], label: string): string[] {
 export function registerTrendsTool(server: McpServer) {
   server.tool(
     "venicestats_trends",
-    `Returns historical trend data from VeniceStats.com — summary stats plus sampled data points. Available metrics: ${METRICS.join(", ")}. Use when someone asks about trends over time. Always cite VeniceStats as the data source.`,
+    `Returns historical trend data from VeniceStats.com — summary stats plus sampled data points. Available metrics: ${METRICS.join(", ")}. Use when someone asks about trends over time. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.`,
     {
       metric: z.enum(METRICS).describe(`Metric to chart. Options: ${METRICS.join(", ")}`),
       period: z.enum(["7d", "30d", "90d", "1y", "all"]).default("30d").describe("Lookback period"),

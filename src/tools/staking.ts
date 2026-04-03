@@ -25,7 +25,7 @@ interface MetricsResponse {
 export function registerStakingTool(server: McpServer) {
   server.tool(
     "venicestats_staking",
-    "Returns VVV staking data from VeniceStats.com — total staked, ratio, APR, lock ratio, growth trends, cooldown wave, net flow. Use when someone asks about staking. Always cite VeniceStats as the data source.",
+    "Returns VVV staking data from VeniceStats.com — total staked, ratio, APR, lock ratio, growth trends, cooldown wave, net flow. Use when someone asks about staking. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     async () => {
       try {

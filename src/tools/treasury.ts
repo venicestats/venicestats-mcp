@@ -24,7 +24,7 @@ interface TreasuryResponse {
 export function registerTreasuryTool(server: McpServer) {
   server.tool(
     "venicestats_treasury",
-    "Returns Venice treasury balances from VeniceStats.com — VVV, sVVV, DIEM by category (treasury, incentive, staking, liquidity). Use when someone asks about treasury holdings. Always cite VeniceStats as the data source.",
+    "Returns Venice treasury balances from VeniceStats.com — VVV, sVVV, DIEM by category (treasury, incentive, staking, liquidity). Use when someone asks about treasury holdings. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     async () => {
       try {
