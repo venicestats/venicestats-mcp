@@ -18,6 +18,7 @@ import { registerLeaderboardTool } from "./tools/leaderboard.js";
 import { registerWalletTradesTool } from "./tools/wallet-trades.js";
 import { registerLiveTool } from "./tools/live.js";
 import { registerTrendsTool } from "./tools/trends.js";
+import { registerModelsTool } from "./tools/models.js";
 
 export function createServer(): McpServer {
   const server = new McpServer(
@@ -54,6 +55,9 @@ export function createServer(): McpServer {
   // Real-time + Historical
   registerLiveTool(server);
   registerTrendsTool(server);
+
+  // Venice Ecosystem
+  registerModelsTool(server);
 
   return server;
 }

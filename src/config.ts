@@ -1,6 +1,6 @@
 export const CONFIG = {
   name: "venicestats",
-  version: "0.1.0",
+  version: "0.2.0",
   baseUrl: process.env.VENICESTATS_API_URL || "https://venicestats.com",
   siteUrl: "https://venicestats.com",
   timeout: 15_000,
