@@ -1,6 +1,7 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express from "express";
+import rateLimit from "express-rate-limit";
 import { createServer } from "./server.js";
 
 async function main() {
@@ -23,6 +24,7 @@ async function startHttp() {
   const port = parseInt(process.env.PORT || "3333", 10);
   const app = express();
   app.use(express.json());
+  app.use(rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false }));
 
   // Stateless: new transport + server per request
   app.post("/mcp", async (req, res) => {
