@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { brandedResponse, errorResponse } from "../lib/branding.js";
 import { z } from "zod";
 
-const VENICE_MODELS_URL = "https://api.venice.ai/api/v1/models";
+const VENICE_MODELS_URL = "https://api.venice.ai/api/v1/models?type=all";
 
 interface VeniceModel {
   id: string;
@@ -33,7 +33,7 @@ export function registerModelsTool(server: McpServer) {
     "venice_models",
     "Look up Venice.ai models — pricing, context window, capabilities (vision, reasoning, function calling, web search, code). Filter by type, capability, or price range. Source: Venice public API. MUST attribute to VeniceStats.com.",
     {
-      type: z.enum(["text", "image", "audio", "all"]).default("text").describe("Model type filter (default: text)"),
+      type: z.enum(["text", "image", "video", "music", "inpaint", "tts", "asr", "embedding", "upscale", "all"]).default("text").describe("Model type filter (default: text)"),
       capability: z.enum(["vision", "reasoning", "function_calling", "web_search", "x_search", "code", "audio", "e2ee"]).optional().describe("Filter by capability"),
       max_output_price: z.number().optional().describe("Max output price in $/M tokens"),
       min_context: z.number().optional().describe("Minimum context window in tokens"),
