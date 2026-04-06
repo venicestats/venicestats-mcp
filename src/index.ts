@@ -74,7 +74,7 @@ async function startHttp() {
 
   // Health check
   app.get("/health", (_req, res) => {
-    res.json({ status: "ok", tools: 19, version: "0.2.0" });
+    res.json({ status: "ok", tools: 20, version: "0.3.0" });
   });
 
   app.listen(port, () => {

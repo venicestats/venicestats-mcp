@@ -13,6 +13,7 @@ import { registerAirdropTool } from "./tools/airdrop.js";
 import { registerDiemTool } from "./tools/diem.js";
 import { registerVestingTool } from "./tools/vesting.js";
 import { registerBuzzTool } from "./tools/buzz.js";
+import { registerBuzzMetricsTool } from "./tools/buzz-metrics.js";
 import { registerSocialTool } from "./tools/social.js";
 import { registerLeaderboardTool } from "./tools/leaderboard.js";
 import { registerWalletTradesTool } from "./tools/wallet-trades.js";
@@ -46,6 +47,7 @@ export function createServer(): McpServer {
 
   // Community
   registerBuzzTool(server);
+  registerBuzzMetricsTool(server);
   registerSocialTool(server);
 
   // Rankings + Wallet Intel
