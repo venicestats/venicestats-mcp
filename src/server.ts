@@ -20,6 +20,7 @@ import { registerWalletTradesTool } from "./tools/wallet-trades.js";
 import { registerLiveTool } from "./tools/live.js";
 import { registerTrendsTool } from "./tools/trends.js";
 import { registerModelsTool } from "./tools/models.js";
+import { registerTokenBenchmarksTool } from "./tools/token-benchmarks.js";
 
 export function createServer(): McpServer {
   const server = new McpServer(
@@ -60,6 +61,9 @@ export function createServer(): McpServer {
 
   // Venice Ecosystem
   registerModelsTool(server);
+
+  // Cross-token Benchmarks (AI/DePIN/Compute)
+  registerTokenBenchmarksTool(server);
 
   return server;
 }
