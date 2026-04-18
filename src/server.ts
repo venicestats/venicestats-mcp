@@ -21,6 +21,9 @@ import { registerLiveTool } from "./tools/live.js";
 import { registerTrendsTool } from "./tools/trends.js";
 import { registerModelsTool } from "./tools/models.js";
 import { registerTokenBenchmarksTool } from "./tools/token-benchmarks.js";
+import { registerDiscretionaryBurnTool } from "./tools/discretionary-burn.js";
+import { registerSimulateRevenueTool } from "./tools/simulate-revenue.js";
+import { registerBurnsTimelineTool } from "./tools/burns-timeline.js";
 
 export function createServer(): McpServer {
   const server = new McpServer(
@@ -64,6 +67,11 @@ export function createServer(): McpServer {
 
   // Cross-token Benchmarks (AI/DePIN/Compute)
   registerTokenBenchmarksTool(server);
+
+  // Buy-and-Burn Economy
+  registerDiscretionaryBurnTool(server);
+  registerSimulateRevenueTool(server);
+  registerBurnsTimelineTool(server);
 
   return server;
 }
