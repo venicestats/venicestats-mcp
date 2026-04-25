@@ -2,6 +2,22 @@
 
 All notable changes to this MCP server are documented here.
 
+## [0.6.1] — 2026-04-25
+
+### Fixed
+- **`venice_models`** — Constraints line no longer renders as `[object Object]`. Helper `formatConstraintValue` now handles the four real shapes returned by Venice's `/api/v1/models`:
+  - Dict with `min`/`max`/`default` keys (e.g. text models' `temperature: { default: 0.7 }`, image models' `steps: { default: 25, max: 30 }`) → formatted as `default 0.7` / `default 25, max 30` / `min–max (default X)` when `min` is present.
+  - Arrays of strings (e.g. image `aspectRatios`, video `durations`/`resolutions`) → joined with `/`.
+  - Primitives (string/int/bool, e.g. `promptCharacterLimit: 1500`) → stringified directly.
+  - Unknown shapes → fallback to `JSON.stringify(v)` so something readable always renders.
+- **`venice_models` `type=video`** — Was throwing `Cannot read properties of undefined (reading 'generation')` on every call because all 88 video models in Venice's current API ship without a `pricing` field. `formatPricing` and `priceSortKey` now guard against missing `pricing` (renders `See venice.ai for pricing`, sorts last). The TypeScript shape was tightened to `pricing?: Record<string, unknown>`.
+- **Health check** now reports the correct version (was stuck at `0.5.0` since v0.6.0 ship).
+
+### Notes — bundled v0.6.0 release notes (npm-only)
+v0.6.0 was deployed to the HTTP server at `mcp.venicestats.com` on 2026-04-24 but never published to npm; users on `npx @venicestats/mcp-server` skip directly from `0.5.0` to `0.6.1` and pick up the v0.6.0 changes alongside the constraints fix:
+- **`venice_models`** gained `sort` (`price` default | `recent` | `context`), `limit` (1–100), and an `Added to Venice` field on each result derived from the API's `created` timestamp. Use `sort=recent` for "newest LLMs" questions.
+- **Grok ID fix**: `grok-4-20-beta` → `grok-4-20` (Venice dropped the `-beta` suffix; caught by VeniceStats' hourly catalog drift check).
+
 ## [0.5.0] — 2026-04-18
 
 ### Added — Buy-and-Burn Economy (3 new tools)

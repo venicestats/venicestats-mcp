@@ -13,8 +13,9 @@ interface VeniceModel {
     name: string;
     description?: string;
     // Text models: {input: {usd}, output: {usd}}
-    // Image/video/etc: {generation: {usd}, upscale?: {...}}
-    pricing: Record<string, unknown>;
+    // Image/etc: {generation: {usd}, upscale?: {...}}
+    // Video models in current API have NO pricing field — handle as undefined.
+    pricing?: Record<string, unknown>;
     availableContextTokens?: number;
     maxCompletionTokens?: number;
     constraints?: Record<string, unknown>;
@@ -35,7 +36,8 @@ interface VeniceModel {
 }
 
 /** Extract a human-readable pricing string from any model type */
-function formatPricing(pricing: Record<string, unknown>, type: string): string {
+function formatPricing(pricing: Record<string, unknown> | undefined, type: string): string {
+  if (!pricing) return "See venice.ai for pricing";
   if (type === "text") {
     const inp = (pricing.input as { usd?: number })?.usd;
     const out = (pricing.output as { usd?: number })?.usd;
@@ -53,10 +55,36 @@ function formatPricing(pricing: Record<string, unknown>, type: string): string {
   return parts.length > 0 ? parts.join(" | ") : "See venice.ai for pricing";
 }
 
-/** Sort key: lower = cheaper */
-function priceSortKey(pricing: Record<string, unknown>, type: string): number {
+/** Sort key: lower = cheaper. Models without pricing (e.g. all video models in current API) sort last. */
+function priceSortKey(pricing: Record<string, unknown> | undefined, type: string): number {
+  if (!pricing) return 999;
   if (type === "text") return ((pricing.output as { usd?: number })?.usd ?? 999);
   return ((pricing.generation as { usd?: number })?.usd ?? 999);
+}
+
+/** Format a single constraint value into a human-readable string.
+ * Venice constraints come in 4 shapes: dict ({min/max/default}), array (resolutions/aspectRatios), primitives, unknown. */
+function formatConstraintValue(v: unknown): string {
+  if (v == null) return "—";
+  if (Array.isArray(v)) {
+    if (v.length === 0) return "—";
+    return v
+      .map((x) => (x !== null && typeof x === "object" ? JSON.stringify(x) : String(x)))
+      .join("/");
+  }
+  if (typeof v === "object") {
+    const o = v as { min?: unknown; max?: unknown; default?: unknown };
+    const { min, max, default: def } = o;
+    if (min != null && max != null) {
+      return def != null ? `${min}–${max} (default ${def})` : `${min}–${max}`;
+    }
+    if (max != null) {
+      return def != null ? `default ${def}, max ${max}` : `max ${max}`;
+    }
+    if (def != null) return `default ${def}`;
+    return JSON.stringify(v);
+  }
+  return String(v);
 }
 
 export function registerModelsTool(server: McpServer) {
@@ -190,7 +218,9 @@ export function registerModelsTool(server: McpServer) {
             lines.push(`- **Context**: ${ctx} tokens${s.maxCompletionTokens ? ` | Max output: ${(s.maxCompletionTokens / 1_000).toFixed(0)}K` : ""}`);
           }
           if (s.constraints) {
-            const cStr = Object.entries(s.constraints).map(([k, v]) => `${k}: ${v}`).join(", ");
+            const cStr = Object.entries(s.constraints)
+              .map(([k, v]) => `${k}: ${formatConstraintValue(v)}`)
+              .join(", ");
             if (cStr) lines.push(`- **Constraints**: ${cStr}`);
           }
           if (caps.length > 0) lines.push(`- **Capabilities**: ${caps.join(", ")}`);
