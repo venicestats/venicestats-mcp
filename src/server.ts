@@ -24,6 +24,7 @@ import { registerTokenBenchmarksTool } from "./tools/token-benchmarks.js";
 import { registerDiscretionaryBurnTool } from "./tools/discretionary-burn.js";
 import { registerSimulateRevenueTool } from "./tools/simulate-revenue.js";
 import { registerBurnsTimelineTool } from "./tools/burns-timeline.js";
+import { registerBurnStatsByTierTool } from "./tools/burn-stats-by-tier.js";
 
 export function createServer(): McpServer {
   const server = new McpServer(
@@ -72,6 +73,7 @@ export function createServer(): McpServer {
   registerDiscretionaryBurnTool(server);
   registerSimulateRevenueTool(server);
   registerBurnsTimelineTool(server);
+  registerBurnStatsByTierTool(server);
 
   return server;
 }
