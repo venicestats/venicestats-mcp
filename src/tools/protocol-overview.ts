@@ -89,7 +89,9 @@ function formatCategory(cat: string, d: MetricsResponse): string[] {
         `## Economics`,
         `Ecosystem TVL: ${fmtUsd(d.ecosystemTvl)}`,
         `Venice Revenue (est.): ${fmtUsd(d.veniceRevenue)}/year`,
-        `P/E Ratio: ${d.peRatio.toFixed(1)}`,
+        // peRatio field name is legacy; conceptually it's Price-to-Sales
+        // (marketCap / annualised burn revenue, not earnings).
+        `P/S Ratio: ${d.peRatio.toFixed(1)}x (mkt cap ÷ annualised burn revenue; this is P/S — Venice doesn't publish net earnings)`,
         `Implied Confidence: ${d.impliedConfidence.toFixed(2)}x`,
       ];
     case "growth":
