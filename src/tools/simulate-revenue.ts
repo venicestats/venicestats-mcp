@@ -23,7 +23,6 @@ interface SimulatorOutput {
   proSubAnnualUsd: number;
   discretionaryAnnualRunRate: number | null;
   totalBurnPacePerYear: number;
-  burnsPctProSubArr: number;
   narrative: string;
   warnings: string[];
   presets?: Record<string, { label: string; dist: { pro: number; plus: number; max: number }; desc: string }>;
@@ -119,9 +118,9 @@ export function registerSimulateRevenueTool(server: McpServer) {
           );
         }
         lines.push(`Combined burn pace / year: ${fmtUsd(d.totalBurnPacePerYear)}`);
-        lines.push(
-          `Burns as % of simulated ARR: ${d.burnsPctProSubArr.toFixed(1)}%`,
-        );
+        // Removed "Burns as % of simulated ARR" — endpoint stopped emitting burnsPctProSubArr
+        // intentionally (per feedback_burns_vs_revenue_framing rule: never frame buyback flow as
+        // a fraction of revenue; it's a tier-deterministic budget, not a take-rate).
         lines.push("");
 
         lines.push(`### Narrative`);
