@@ -1,6 +1,15 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(
+  readFileSync(join(__dirname, "../package.json"), "utf8"),
+) as { version: string };
+
 export const CONFIG = {
   name: "venicestats",
-  version: "0.5.0",
+  version: pkg.version,
   baseUrl: process.env.VENICESTATS_API_URL || "https://venicestats.com",
   siteUrl: "https://venicestats.com",
   timeout: 15_000,

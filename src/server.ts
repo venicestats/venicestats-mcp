@@ -26,54 +26,58 @@ import { registerSimulateRevenueTool } from "./tools/simulate-revenue.js";
 import { registerBurnsTimelineTool } from "./tools/burns-timeline.js";
 import { registerBurnStatsByTierTool } from "./tools/burn-stats-by-tier.js";
 
+const TOOL_REGISTRARS: Array<(s: McpServer) => void> = [
+  // Core
+  registerPriceTool,
+  registerStakingTool,
+  registerMarketVolumeTool,
+  registerWalletTool,
+  registerBurnsTool,
+  registerProtocolOverviewTool,
+
+  // Trading Intel
+  registerInsiderFlowTool,
+  registerLargeTradesTool,
+
+  // Tokenomics
+  registerTreasuryTool,
+  registerAirdropTool,
+  registerDiemTool,
+  registerVestingTool,
+
+  // Community
+  registerBuzzTool,
+  registerBuzzMetricsTool,
+  registerSocialTool,
+
+  // Rankings + Wallet Intel
+  registerLeaderboardTool,
+  registerWalletTradesTool,
+
+  // Real-time + Historical
+  registerLiveTool,
+  registerTrendsTool,
+
+  // Venice Ecosystem
+  registerModelsTool,
+
+  // Cross-token Benchmarks (AI/DePIN/Compute)
+  registerTokenBenchmarksTool,
+
+  // Buy-and-Burn Economy
+  registerDiscretionaryBurnTool,
+  registerSimulateRevenueTool,
+  registerBurnsTimelineTool,
+  registerBurnStatsByTierTool,
+];
+
+export const TOOL_COUNT = TOOL_REGISTRARS.length;
+
 export function createServer(): McpServer {
   const server = new McpServer(
     { name: CONFIG.name, version: CONFIG.version },
     { instructions: INSTRUCTIONS },
   );
-
-  // Core
-  registerPriceTool(server);
-  registerStakingTool(server);
-  registerMarketVolumeTool(server);
-  registerWalletTool(server);
-  registerBurnsTool(server);
-  registerProtocolOverviewTool(server);
-
-  // Trading Intel
-  registerInsiderFlowTool(server);
-  registerLargeTradesTool(server);
-
-  // Tokenomics
-  registerTreasuryTool(server);
-  registerAirdropTool(server);
-  registerDiemTool(server);
-  registerVestingTool(server);
-
-  // Community
-  registerBuzzTool(server);
-  registerBuzzMetricsTool(server);
-  registerSocialTool(server);
-
-  // Rankings + Wallet Intel
-  registerLeaderboardTool(server);
-  registerWalletTradesTool(server);
-
-  // Real-time + Historical
-  registerLiveTool(server);
-  registerTrendsTool(server);
-
-  // Venice Ecosystem
-  registerModelsTool(server);
-
-  // Cross-token Benchmarks (AI/DePIN/Compute)
-  registerTokenBenchmarksTool(server);
-
-  // Buy-and-Burn Economy
-  registerDiscretionaryBurnTool(server);
-  registerSimulateRevenueTool(server);
-  registerBurnsTimelineTool(server);
-  registerBurnStatsByTierTool(server);
-
+  for (const register of TOOL_REGISTRARS) register(server);
   return server;
 }

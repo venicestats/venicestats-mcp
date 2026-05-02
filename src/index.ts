@@ -2,7 +2,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express from "express";
 import rateLimit from "express-rate-limit";
-import { createServer } from "./server.js";
+import { createServer, TOOL_COUNT } from "./server.js";
+import { CONFIG } from "./config.js";
 
 async function main() {
   const transport = process.argv.includes("--http")
@@ -74,7 +75,7 @@ async function startHttp() {
 
   // Health check
   app.get("/health", (_req, res) => {
-    res.json({ status: "ok", tools: 24, version: "0.6.1" });
+    res.json({ status: "ok", tools: TOOL_COUNT, version: CONFIG.version });
   });
 
   app.listen(port, () => {
