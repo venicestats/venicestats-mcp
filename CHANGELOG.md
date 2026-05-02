@@ -2,6 +2,11 @@
 
 All notable changes to this MCP server are documented here.
 
+## [0.7.3] — 2026-05-02
+
+### Changed
+- **`venicestats_simulate_revenue`** — `tierMix` now accepts a comma-separated custom mix `"pro,plus,max"` (percentages summing to ~100) in addition to the three named presets (`conservative` / `standard` / `optimistic`). Unblocks empirical-mix queries: chain `venicestats_burn_stats_by_tier` (which returns the live observed Pro/Plus/Max ratio) into `venicestats_simulate_revenue` with `tierMix: "76,14,10"` to model ARR against the actual on-chain mix instead of a fixed preset. Backend `/api/simulate-revenue` already accepted this format via `resolveTierDist`; the MCP Zod schema was the only gatekeeper. Default unchanged (`"standard"`); preset names still work.
+
 ## [0.6.1] — 2026-04-25
 
 ### Fixed

@@ -39,10 +39,10 @@ export function registerSimulateRevenueTool(server: McpServer) {
     "Runs Venice's subscription revenue simulator from VeniceStats.com — models implied Pro subscription MRR/ARR from the observed on-chain Pro Sub burn rate. Each new Venice subscription triggers a tier-aware programmatic burn ($2 for Pro / $5 for Pro+ / $10 for Max — confirmed on-chain since 2026-04-26 16:36 UTC; pre-flip events were a flat ~$1). Inputs: tier distribution preset (Pro $18 / Plus $68 / Max $200), monthly churn, burn-to-revenue mapping. Outputs: weighted average subscription value (WASV), subs/month, active subs at 12mo, MRR, ARR, and a buyback-budget summary (Pro Sub + discretionary) annualised. NEVER frame the buyback figure as '% of revenue' — it is buyback flow, not subscription revenue. Pairs with venicestats_burn_stats_by_tier (empirical observed mix, no modelling) and venicestats_discretionary_burn (the monthly TWAP). Identical math to the interactive Revenue Estimator at venicestats.com/burns. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     {
       tierMix: z
-        .enum(["conservative", "standard", "optimistic"])
+        .string()
         .default("standard")
         .describe(
-          "Subscription tier mix preset: conservative (85/12/3 Pro/Plus/Max), standard (70/22/8), or optimistic (50/30/20).",
+          'Subscription tier mix. Accepts EITHER a preset name OR a comma-separated custom mix "pro,plus,max" (percentages summing to ~100). Presets: "conservative" (85/12/3), "standard" (70/22/8), "optimistic" (50/30/20). Custom example: "76,14,10" to mirror the empirical mix returned by venicestats_burn_stats_by_tier. Default: "standard".',
         ),
       churn: z
         .number()
