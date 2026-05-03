@@ -25,6 +25,7 @@ import { registerDiscretionaryBurnTool } from "./tools/discretionary-burn.js";
 import { registerSimulateRevenueTool } from "./tools/simulate-revenue.js";
 import { registerBurnsTimelineTool } from "./tools/burns-timeline.js";
 import { registerBurnStatsByTierTool } from "./tools/burn-stats-by-tier.js";
+import { registerFreeFloatTool } from "./tools/free-float.js";
 
 const TOOL_REGISTRARS: Array<(s: McpServer) => void> = [
   // Core
@@ -69,6 +70,9 @@ const TOOL_REGISTRARS: Array<(s: McpServer) => void> = [
   registerSimulateRevenueTool,
   registerBurnsTimelineTool,
   registerBurnStatsByTierTool,
+
+  // Supply Mechanics
+  registerFreeFloatTool,
 ];
 
 export const TOOL_COUNT = TOOL_REGISTRARS.length;
