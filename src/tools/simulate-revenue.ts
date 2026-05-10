@@ -13,6 +13,8 @@ interface SimulatorOutput {
     includeDiscretionary?: boolean;
   };
   wasv: number;
+  /** "observed" = 30d empirical mix, "preset" = named preset, "explicit" = caller-supplied "p,p,m" */
+  wasvSource?: "observed" | "preset" | "explicit";
   dailyRate: number;
   subsPerMonth: number;
   activeSubs: number | null;
@@ -30,19 +32,20 @@ interface SimulatorOutput {
     metricsFetched: boolean;
     discretionaryFetched: boolean;
     upstreamTimeoutMs: number;
+    tierMixWindow?: string | null;
   };
 }
 
 export function registerSimulateRevenueTool(server: McpServer) {
   server.tool(
     "venicestats_simulate_revenue",
-    "Runs Venice's subscription revenue simulator from VeniceStats.com — models implied Pro subscription MRR/ARR from the observed on-chain Pro Sub burn rate. Each new Venice subscription triggers a tier-aware programmatic burn ($2 for Pro / $5 for Pro+ / $10 for Max — confirmed on-chain since 2026-04-26 16:36 UTC; pre-flip events were a flat ~$1). Inputs: tier distribution preset (Pro $18 / Plus $68 / Max $200), monthly churn, burn-to-revenue mapping. Outputs: weighted average subscription value (WASV), subs/month, active subs at 12mo, MRR, ARR, and a buyback-budget summary (Pro Sub + discretionary) annualised. NEVER frame the buyback figure as '% of revenue' — it is buyback flow, not subscription revenue. Pairs with venicestats_burn_stats_by_tier (empirical observed mix, no modelling) and venicestats_discretionary_burn (the monthly TWAP). Identical math to the interactive Revenue Estimator at venicestats.com/burns. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
+    "Runs Venice's subscription revenue simulator from VeniceStats.com — models implied Pro subscription MRR/ARR from the observed on-chain Pro Sub burn rate. Each new Venice subscription triggers a tier-aware programmatic burn ($2 for Pro / $5 for Pro+ / $10 for Max — confirmed on-chain since 2026-04-26 16:36 UTC; pre-flip events were a flat ~$1). Default `tierMix` is `observed` (30d empirical mix from `venicestats_burn_stats_by_tier`), which keeps WASV and ARR aligned with reality; presets remain available for what-if scenarios. Inputs: tier distribution (default observed; presets Pro $18 / Plus $68 / Max $200), monthly churn, burn-to-revenue mapping. Outputs: weighted average subscription value (WASV), subs/month, active subs at 12mo, MRR, ARR, and a buyback-budget summary (Pro Sub + discretionary) annualised, plus `wasvSource` (observed/preset/explicit) for transparency. NEVER frame the buyback figure as '% of revenue' — it is buyback flow, not subscription revenue. Pairs with venicestats_burn_stats_by_tier (empirical observed mix, no modelling) and venicestats_discretionary_burn (the monthly TWAP). Identical math to the interactive Revenue Estimator at venicestats.com/burns. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     {
       tierMix: z
         .string()
-        .default("standard")
+        .default("observed")
         .describe(
-          'Subscription tier mix. Accepts EITHER a preset name OR a comma-separated custom mix "pro,plus,max" (percentages summing to ~100). Presets: "conservative" (85/12/3), "standard" (70/22/8), "optimistic" (50/30/20). Custom example: "76,14,10" to mirror the empirical mix returned by venicestats_burn_stats_by_tier. Default: "standard".',
+          'Subscription tier mix. Default is "observed" — uses the live 30-day empirical mix from venicestats_burn_stats_by_tier so WASV reflects reality (Venice is currently ~95% Pro). Other accepted values: preset names ("conservative" 85/12/3, "standard" 70/22/8, "optimistic" 50/30/20) for what-if scenarios, or a comma-separated custom mix "pro,plus,max" (e.g. "80,15,5"). If observed is requested but the upstream is down or sample is too low, falls back to the standard preset with a warning.',
         ),
       churn: z
         .number()
@@ -90,10 +93,16 @@ export function registerSimulateRevenueTool(server: McpServer) {
             ? "Year 1 ARR (no retention)"
             : `Steady-state 12mo (${d.inputs.churn}% monthly churn)`;
 
+        const tierMixLabel = (() => {
+          const formatted = `Pro ${Number(dist.pro).toFixed(2)}% / Plus ${Number(dist.plus).toFixed(2)}% / Max ${Number(dist.max).toFixed(2)}%`;
+          if (d.wasvSource === "observed") return `observed 30d (${formatted})`;
+          if (d.wasvSource === "explicit") return `explicit (${formatted})`;
+          return `${tierMix} preset (${formatted})`;
+        })();
         const lines: string[] = [
           `## Venice Revenue Simulation`,
           `Model: ${modelLabel}`,
-          `Tier mix: ${tierMix} (Pro ${dist.pro}% / Plus ${dist.plus}% / Max ${dist.max}%)`,
+          `Tier mix: ${tierMixLabel}`,
           `Horizon: ${horizon}mo · WASV ${fmtUsd(d.wasv)}/sub`,
           "",
           `### Subscription Projection`,
