@@ -111,4 +111,23 @@ Add to `.cursor/mcp.json` in your project:
 
 ## License
 
+---
+
+## 🌐 Ecosystem Integrations
+
+Projects building on VeniceStats:
+
+### [VVVKernel](https://vvvkernel.com)
+Private AI sidebar (Chrome extension + dashboard) consuming VeniceStats for the Venice ecosystem layer:
+
+- **Live $VVV health card** in the sidebar (price, stake APR, insider flow)
+- **Onchain agent intelligence** — Venice expert agents call `venicestats_insider_flow`, `venicestats_staking`, and `venicestats_protocol_overview` for live risk signals
+- **Cross-MCP workflow** — VVVKernel + VeniceStats + Base MCP work side-by-side in Claude Desktop / Cursor
+
+Built on Venice AI inference. `$VVVK` on Base mainnet.
+
+---
+
+*To add your project as an integration, open a PR with the same format.*
+
 [MIT](LICENSE)
