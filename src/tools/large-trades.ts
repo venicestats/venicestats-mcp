@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
 import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
-import { fmtUsd, fmtToken, fmtAgo } from "../lib/format.js";
+import { firstOf, fmtAgo, fmtCount, fmtPrice, fmtToken, fmtUsd, missingList, positive, rows, str } from "../lib/format.js";
 
 interface Swap {
   timestamp: string;
@@ -16,18 +16,18 @@ interface Swap {
   trader: string;
   traderName: string | null;
   isVesting: boolean;
-  txHash: string;
 }
 
 interface LargeSwapsResponse {
   swaps: Swap[];
   pagination: {
-    page: number;
-    limit: number;
     total: number;
-    pages: number;
   };
-  period: string;
+}
+
+/** Side of a trade; an unknown one is never shown as a sell. */
+export function tradeSide(direction: unknown): string {
+  return direction === "buy" ? "🟢 BUY" : direction === "sell" ? "🔴 SELL" : "⚪ TRADE";
 }
 
 export function registerLargeTradesTool(server: McpServer) {
@@ -55,19 +55,22 @@ export function registerLargeTradesTool(server: McpServer) {
         });
 
         const lines = [
-          `## Large ${token} Trades — VeniceStats (${period}, ${d.pagination.total.toLocaleString()} total above ${fmtUsd(minVolume)})`,
+          `## Large ${token} Trades — VeniceStats (${period}, ${fmtCount(d.pagination?.total)} total above ${fmtUsd(minVolume)})`,
           "",
         ];
 
-        if (d.swaps.length === 0) {
+        const swaps = rows(d.swaps);
+        if (!Array.isArray(d.swaps)) {
+          lines.push(...missingList(d.swaps));
+        } else if (swaps.length === 0) {
           lines.push("No trades found matching the criteria.");
         } else {
-          for (const s of d.swaps) {
-            const dir = s.direction === "buy" ? "🟢 BUY" : "🔴 SELL";
-            const name = s.traderName || s.trader;
-            const insider = s.isVesting ? " [INSIDER]" : "";
-            const price = s.effectivePrice ? ` @ $${s.effectivePrice.toFixed(2)}` : "";
-            lines.push(`- ${dir} ${fmtUsd(s.volumeUsd)} (${fmtToken(s.tokenAmount, s.tokenLabel)}${price}) via ${s.poolName} (${s.dex}) by ${name}${insider} — ${fmtAgo(s.timestamp)}`);
+          for (const s of swaps) {
+            const name = firstOf([s.traderName, s.trader], "unknown wallet");
+            const insider = s.isVesting === true ? " [INSIDER]" : "";
+            const price = positive(s.effectivePrice);
+            const at = price === null ? "" : ` @ ${fmtPrice(price)}`;
+            lines.push(`- ${tradeSide(s.direction)} ${fmtUsd(s.volumeUsd)} (${fmtToken(s.tokenAmount, str(s.tokenLabel))}${at}) via ${firstOf([s.poolName], "unknown pool")} (${firstOf([s.dex], "unknown DEX")}) by ${name}${insider} — ${fmtAgo(s.timestamp)}`);
           }
         }
 

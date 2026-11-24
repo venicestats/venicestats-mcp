@@ -2,7 +2,7 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-MCP server for [VeniceStats](https://venicestats.com) — real-time on-chain analytics for Venice.ai (VVV/DIEM tokens on Base chain). Exposes 18 tools that any MCP-compatible client (Claude Desktop, Cursor, etc.) can call to get live protocol data, trading intelligence, wallet profiles, and more.
+MCP server for [VeniceStats](https://venicestats.com) — real-time on-chain analytics for Venice.ai (VVV/DIEM tokens on Base chain). Exposes tools that any MCP-compatible client (Claude Desktop, Cursor, etc.) can call to get live protocol data, trading intelligence, wallet profiles, and more.
 
 ## Quick Start
 
@@ -51,14 +51,14 @@ Add to `.cursor/mcp.json` in your project:
 }
 ```
 
-## Tools (18)
+## Tools
 
 ### Core
 | Tool | Description |
 |------|-------------|
 | `venicestats_price` | VVV and DIEM prices, 24h change, market cap, FDV |
 | `venicestats_staking` | Staking ratio, APR, lock status, growth, cooldown wave |
-| `venicestats_market_volume` | DEX trading volume by pool, buy/sell ratio, trader count |
+| `venicestats_market_volume` | DEX trading volume by pool, buy/sell ratio, unique traders (up to 30 days) |
 | `venicestats_wallet` | Full wallet profile: role, era, size, badges, radar, chronicle |
 | `venicestats_burns` | Recent VVV burn events with categories and ENS names |
 | `venicestats_protocol_overview` | Comprehensive protocol snapshot (40+ KPIs, filterable by category) |
@@ -72,16 +72,16 @@ Add to `.cursor/mcp.json` in your project:
 ### Tokenomics
 | Tool | Description |
 |------|-------------|
-| `venicestats_treasury` | Treasury balances by category (treasury, incentive, staking, liquidity) |
+| `venicestats_treasury` | Treasury balances by category |
 | `venicestats_airdrop` | Airdrop distribution, retention rate, loyalist analysis |
-| `venicestats_diem` | DIEM minting cohorts, top minters, burn rates, Venice revenue |
+| `venicestats_diem` | DIEM minting cohorts, top minters, burn rates, emission haircut |
 | `venicestats_vesting` | Vesting schedules, daily drip rate, cliffs, fully-vested date |
 
 ### Community
 | Tool | Description |
 |------|-------------|
 | `venicestats_buzz` | Recent articles, tweets, and videos about Venice.ai |
-| `venicestats_social` | Twitter followers, CoinGecko sentiment, social volume (coming soon) |
+| `venicestats_social` | Twitter followers, CoinGecko sentiment, social volume |
 
 ### Rankings & Wallet Intel
 | Tool | Description |

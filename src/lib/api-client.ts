@@ -1,4 +1,5 @@
 import { CONFIG } from "../config.js";
+import type { Maybe } from "./format.js";
 
 export class ApiError extends Error {
   constructor(
@@ -10,10 +11,11 @@ export class ApiError extends Error {
   }
 }
 
+/** Any field of the result may be missing: see `Maybe`. */
 export async function apiGet<T>(
   path: string,
   params?: Record<string, string | number | undefined>,
-): Promise<T> {
+): Promise<NonNullable<Maybe<T>>> {
   const url = new URL(path, CONFIG.baseUrl);
   if (params) {
     for (const [k, v] of Object.entries(params)) {
@@ -50,7 +52,11 @@ export async function apiGet<T>(
         throw lastError;
       }
 
-      return (await res.json()) as T;
+      const body: unknown = await res.json();
+      if (body === null || typeof body !== "object") {
+        throw new ApiError(res.status, `VeniceStats API returned an empty response for ${path}`);
+      }
+      return body as NonNullable<Maybe<T>>;
     } catch (err) {
       if (err instanceof ApiError) throw err;
       if (err instanceof DOMException && err.name === "AbortError") {

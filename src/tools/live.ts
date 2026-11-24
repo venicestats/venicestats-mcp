@@ -2,10 +2,9 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
 import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
-import { fmtToken, fmtUsd, fmtPct, fmtAgo } from "../lib/format.js";
+import { countOf, firstOf, fmtAgo, fmtCount, fmtPct, fmtToken, fmtUsd, missingList, positive, rows, str } from "../lib/format.js";
 
 interface LiveEvent {
-  id: string;
   source: string;
   type: string;
   address: string;
@@ -13,9 +12,7 @@ interface LiveEvent {
   ensName: string | null;
   botLabel: string | null;
   amount: number;
-  txHash: string;
   timestamp: string;
-  pool: string | null;
 }
 
 interface LiveResponse {
@@ -27,8 +24,14 @@ interface LiveResponse {
     diemChange24h: number;
     vvvVolume24h: number;
     diemVolume24h: number;
+    vvvAsOf?: string | null;
+    diemAsOf?: string | null;
+    vvvStale?: boolean;
+    diemStale?: boolean;
+    /** False = the change is a placeholder zero. */
+    vvvChange24hKnown?: boolean;
+    diemChange24hKnown?: boolean;
   };
-  viewers: number;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -42,7 +45,17 @@ const TYPE_LABELS: Record<string, string> = {
   finalize: "✅ FINALIZE UNSTAKE",
   mint: "🔵 MINT DIEM",
   burn: "🔥 BURN",
+  programmatic: "🔥 PROGRAMMATIC BURN",
 };
+
+function priceLine(
+  symbol: string,
+  p: { price: unknown; change: unknown; known: unknown; volume: unknown; stale: unknown; asOf: unknown },
+): string {
+  const change = fmtPct(p.known === false ? null : p.change);
+  const stale = p.stale === true ? ` ⚠️ stale, as of ${fmtAgo(p.asOf)}` : "";
+  return `${symbol}: ${fmtUsd(positive(p.price))} (${change}) | 24h Vol: ${fmtUsd(p.volume)}${stale}`;
+}
 
 export function registerLiveTool(server: McpServer) {
   server.tool(
@@ -58,18 +71,21 @@ export function registerLiveTool(server: McpServer) {
         const p = d.prices;
 
         const lines = [
-          `## Live Feed — VeniceStats (${d.events.length} events)`,
-          `VVV: ${fmtUsd(p.vvv)} (${fmtPct(p.vvvChange24h)}) | 24h Vol: ${fmtUsd(p.vvvVolume24h)}`,
-          `DIEM: ${fmtUsd(p.diem)} (${fmtPct(p.diemChange24h)}) | 24h Vol: ${fmtUsd(p.diemVolume24h)}`,
+          `## Live Feed — VeniceStats (${fmtCount(countOf(d.events))} events)`,
+          priceLine("VVV", { price: p?.vvv, change: p?.vvvChange24h, known: p?.vvvChange24hKnown, volume: p?.vvvVolume24h, stale: p?.vvvStale, asOf: p?.vvvAsOf }),
+          priceLine("DIEM", { price: p?.diem, change: p?.diemChange24h, known: p?.diemChange24hKnown, volume: p?.diemVolume24h, stale: p?.diemStale, asOf: p?.diemAsOf }),
           "",
+          ...missingList(d.events),
         ];
 
-        for (const e of d.events) {
-          const label = TYPE_LABELS[e.type] || e.type.toUpperCase();
-          const name = e.ensName || e.username || e.address;
-          const bot = e.botLabel ? ` [${e.botLabel}]` : "";
+        for (const e of rows(d.events)) {
+          const type = str(e.type);
+          const label = type === null ? "EVENT" : (TYPE_LABELS[type] ?? type.toUpperCase());
+          const name = firstOf([e.ensName, e.username, e.address], "unknown wallet");
+          const botLabel = str(e.botLabel);
+          const bot = botLabel === null ? "" : ` [${botLabel}]`;
           const token = e.source === "swap"
-            ? (e.type.includes("diem") ? "DIEM" : "VVV")
+            ? (type?.includes("diem") ? "DIEM" : "VVV")
             : (e.source === "diem" ? "DIEM" : "VVV");
           lines.push(`- ${label} ${fmtToken(e.amount, token)} by ${name}${bot} — ${fmtAgo(e.timestamp)}`);
         }

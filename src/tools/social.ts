@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { apiGet, ApiError } from "../lib/api-client.js";
+import { apiGet } from "../lib/api-client.js";
 import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
+import { fmtCount, fmtFixed, fmtShare, num } from "../lib/format.js";
 
 interface SocialResponse {
   twitterFollowers: number | null;
@@ -17,7 +18,6 @@ interface SocialResponse {
   socialVolumeTelegram: number | null;
   socialDominance: number | null;
   sentimentBalance: number | null;
-  lastUpdated: string | null;
 }
 
 export function registerSocialTool(server: McpServer) {
@@ -29,39 +29,43 @@ export function registerSocialTool(server: McpServer) {
       try {
         const d = await apiGet<SocialResponse>("/api/social");
 
-        const lines = [
-          `## Venice Social Metrics`,
-          "",
-          `### Twitter`,
-        ];
-        if (d.twitterFollowers != null) lines.push(`@AskVenice: ${d.twitterFollowers.toLocaleString()} followers`);
-        if (d.erikFollowers != null) lines.push(`@ErikVoorhees: ${d.erikFollowers.toLocaleString()} followers`);
+        const lines = [`## Venice Social Metrics`];
+        let sections = 0;
+        /** A section with the lines that have a value; nothing at all when none has. */
+        const section = (title: string, entries: Array<[unknown, string]>) => {
+          const known = entries.filter(([v]) => num(v) !== null).map(([, line]) => line);
+          if (known.length === 0) return;
+          sections++;
+          lines.push("", `### ${title}`, ...known);
+        };
 
-        lines.push("", `### CoinGecko — VVV`);
-        if (d.watchlistUsers != null) lines.push(`Watchlist: ${d.watchlistUsers.toLocaleString()} users`);
-        if (d.sentimentUpPct != null) lines.push(`Sentiment: ${d.sentimentUpPct}% bullish`);
-        if (d.marketCapRank != null) lines.push(`Market Cap Rank: #${d.marketCapRank}`);
+        section("Twitter", [
+          [d.twitterFollowers, `@AskVenice: ${fmtCount(d.twitterFollowers)} followers`],
+          [d.erikFollowers, `@ErikVoorhees: ${fmtCount(d.erikFollowers)} followers`],
+        ]);
+        section("CoinGecko — VVV", [
+          [d.watchlistUsers, `Watchlist: ${fmtCount(d.watchlistUsers)} users`],
+          [d.sentimentUpPct, `Sentiment: ${fmtShare(d.sentimentUpPct, 2)} bullish`],
+          [d.marketCapRank, `Market Cap Rank: #${fmtCount(d.marketCapRank)}`],
+        ]);
+        section("CoinGecko — DIEM", [
+          [d.diemWatchlistUsers, `Watchlist: ${fmtCount(d.diemWatchlistUsers)} users`],
+          [d.diemSentimentUpPct, `Sentiment: ${fmtShare(d.diemSentimentUpPct, 2)} bullish`],
+          [d.diemMarketCapRank, `Market Cap Rank: #${fmtCount(d.diemMarketCapRank)}`],
+        ]);
 
-        if (d.diemWatchlistUsers != null || d.diemSentimentUpPct != null) {
-          lines.push("", `### CoinGecko — DIEM`);
-          if (d.diemWatchlistUsers != null) lines.push(`Watchlist: ${d.diemWatchlistUsers.toLocaleString()} users`);
-          if (d.diemSentimentUpPct != null) lines.push(`Sentiment: ${d.diemSentimentUpPct}% bullish`);
-          if (d.diemMarketCapRank != null) lines.push(`Market Cap Rank: #${d.diemMarketCapRank}`);
-        }
+        const balance = num(d.sentimentBalance);
+        const bySource = ([["Twitter", d.socialVolumeTwitter], ["Reddit", d.socialVolumeReddit], ["Telegram", d.socialVolumeTelegram]] as const)
+          .filter(([, v]) => num(v) !== null)
+          .map(([label, v]) => `${label}: ${fmtFixed(v, 0)}`);
+        section("Santiment (30d delayed)", [
+          [d.socialVolume, `Social Volume: ${fmtFixed(d.socialVolume, 0)}`],
+          [bySource.length > 0 ? bySource.length : null, `Breakdown: ${bySource.join(" | ")}`],
+          [d.socialDominance, `Social Dominance: ${fmtFixed(d.socialDominance, 4, "%")}`],
+          [balance, `Sentiment Balance: ${balance !== null && balance > 0 ? "+" : ""}${fmtFixed(balance, 2)}`],
+        ]);
 
-        if (d.socialVolume != null) {
-          lines.push("", `### Santiment (30d delayed)`);
-          lines.push(`Social Volume: ${Math.round(d.socialVolume)}`);
-          const breakdown = [
-            d.socialVolumeTwitter != null ? `Twitter: ${Math.round(d.socialVolumeTwitter)}` : null,
-            d.socialVolumeReddit != null ? `Reddit: ${Math.round(d.socialVolumeReddit)}` : null,
-            d.socialVolumeTelegram != null ? `Telegram: ${Math.round(d.socialVolumeTelegram)}` : null,
-          ].filter(Boolean);
-          if (breakdown.length > 0) lines.push(`Breakdown: ${breakdown.join(" | ")}`);
-          if (d.socialDominance != null) lines.push(`Social Dominance: ${d.socialDominance.toFixed(4)}%`);
-          if (d.sentimentBalance != null) lines.push(`Sentiment Balance: ${d.sentimentBalance > 0 ? "+" : ""}${d.sentimentBalance.toFixed(2)}`);
-        }
-
+        if (sections === 0) lines.push("", "n/a — no social data from the API right now.");
         lines.push("", deepLinkLine("/"));
 
         return brandedResponse(lines.join("\n"), {
@@ -69,15 +73,6 @@ export function registerSocialTool(server: McpServer) {
           tip: "Use venicestats_buzz for recent articles and tweets about Venice.",
         });
       } catch (err) {
-        if (err instanceof ApiError && (err.status === 404 || err.status === 500)) {
-          return brandedResponse(
-            "## Venice Social Metrics\n\nSocial data endpoint is not yet available — coming soon.\n\nVeniceStats tracks Twitter followers, CoinGecko watchlist/sentiment, and Santiment social volume. This data will be exposed via the API shortly.",
-            {
-              deepLink: "/",
-              tip: "Use venicestats_buzz for recent articles and tweets about Venice in the meantime.",
-            },
-          );
-        }
         return errorResponse(err instanceof Error ? err.message : String(err));
       }
     },

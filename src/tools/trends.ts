@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
 import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
-import { fmtDate } from "../lib/format.js";
+import { NA, changePct, fmtDate, fmtPct, num, rows, type Maybe } from "../lib/format.js";
 
 const METRICS = [
   "vvvPrice", "diemPrice", "ethPrice",
@@ -18,7 +18,7 @@ interface DataPoint {
   v: number;
 }
 
-type ChartsResponse = Record<string, DataPoint[]> & { period: string };
+type ChartsResponse = Record<MetricName, DataPoint[]>;
 
 const METRIC_LABELS: Record<MetricName, string> = {
   vvvPrice: "VVV Price (USD)",
@@ -35,48 +35,42 @@ const METRIC_LABELS: Record<MetricName, string> = {
   cooldownWave: "Cooldown Wave (VVV)",
 };
 
-function summarizeSeries(points: DataPoint[], label: string): string[] {
-  if (points.length === 0) return [`No data available for ${label}.`];
+/** Points with both a date and a value. A gap is skipped, never read as zero. */
+function knownPoints(series: Maybe<DataPoint[]>): DataPoint[] {
+  return rows(series).flatMap((p) => {
+    const t = num(p.t);
+    const v = num(p.v);
+    return t === null || v === null || fmtDate(t) === NA ? [] : [{ t, v }];
+  });
+}
 
-  const values = points.map((p) => p.v);
-  const first = values[0];
-  const last = values[values.length - 1];
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const change = first !== 0 ? ((last - first) / first) * 100 : 0;
-  const sign = change > 0 ? "+" : "";
+const fmtValue = (v: number): string => v.toLocaleString("en-US", { maximumFractionDigits: 4 });
 
-  const startDate = fmtDate(new Date(points[0].t).toISOString());
-  const endDate = fmtDate(new Date(points[points.length - 1].t).toISOString());
+function summarizeSeries(points: DataPoint[], missing: number, label: string): string[] {
+  const first = points[0];
+  const last = points[points.length - 1];
+  // Not Math.min(...values): a long series would not fit in the call's arguments.
+  const min = points.reduce((m, p) => Math.min(m, p.v), Infinity);
+  const max = points.reduce((m, p) => Math.max(m, p.v), -Infinity);
 
   const lines = [
     `## ${label} — Trend`,
-    `Period: ${startDate} → ${endDate} (${points.length} data points)`,
+    `Period: ${fmtDate(first.t)} → ${fmtDate(last.t)} (${points.length} data points${missing > 0 ? `, ${missing} without a value left out` : ""})`,
     "",
     `| Metric | Value |`,
     `|--------|-------|`,
-    `| Start | ${first.toLocaleString(undefined, { maximumFractionDigits: 4 })} |`,
-    `| End | ${last.toLocaleString(undefined, { maximumFractionDigits: 4 })} |`,
-    `| Change | ${sign}${change.toFixed(2)}% |`,
-    `| Min | ${min.toLocaleString(undefined, { maximumFractionDigits: 4 })} |`,
-    `| Max | ${max.toLocaleString(undefined, { maximumFractionDigits: 4 })} |`,
+    `| Start | ${fmtValue(first.v)} |`,
+    `| End | ${fmtValue(last.v)} |`,
+    `| Change | ${fmtPct(points.length > 1 ? changePct(last.v, first.v) : null)} |`,
+    `| Min | ${fmtValue(min)} |`,
+    `| Max | ${fmtValue(max)} |`,
   ];
 
-  // Sample 10 evenly-spaced points for the LLM to see the shape
-  const sampleSize = Math.min(10, points.length);
-  const step = Math.max(1, Math.floor(points.length / sampleSize));
-  lines.push("", `### Sampled Values (${sampleSize} points)`);
-  for (let i = 0; i < points.length; i += step) {
-    const p = points[i];
-    const date = fmtDate(new Date(p.t).toISOString());
-    lines.push(`- ${date}: ${p.v.toLocaleString(undefined, { maximumFractionDigits: 4 })}`);
-  }
-  // Always include the last point
-  const lastPoint = points[points.length - 1];
-  const lastDate = fmtDate(new Date(lastPoint.t).toISOString());
-  if (points.length > 1 && (points.length - 1) % step !== 0) {
-    lines.push(`- ${lastDate}: ${lastPoint.v.toLocaleString(undefined, { maximumFractionDigits: 4 })}`);
-  }
+  // Sample evenly-spaced points for the LLM to see the shape, always with the last one
+  const step = Math.max(1, Math.floor(points.length / Math.min(10, points.length)));
+  const sampled = points.filter((_p, i) => i % step === 0 || i === points.length - 1);
+  lines.push("", `### Sampled Values (${sampled.length} points)`);
+  for (const p of sampled) lines.push(`- ${fmtDate(p.t)}: ${fmtValue(p.v)}`);
 
   return lines;
 }
@@ -93,9 +87,10 @@ export function registerTrendsTool(server: McpServer) {
     async ({ metric, period }) => {
       try {
         const data = await apiGet<ChartsResponse>("/api/charts", { period });
-        const series = data[metric] as DataPoint[] | undefined;
+        const series = data[metric];
+        const points = knownPoints(series);
 
-        if (!series || series.length === 0) {
+        if (points.length === 0) {
           return brandedResponse(
             `No trend data available for "${metric}" in period "${period}".`,
             { deepLink: "/", tip: "Try a different period or metric." },
@@ -103,7 +98,8 @@ export function registerTrendsTool(server: McpServer) {
         }
 
         const label = METRIC_LABELS[metric] || metric;
-        const lines = summarizeSeries(series, label);
+        const total = Array.isArray(series) ? series.length : points.length;
+        const lines = summarizeSeries(points, total - points.length, label);
 
         lines.push("", deepLinkLine("/"));
 

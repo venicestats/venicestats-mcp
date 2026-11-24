@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { apiGet } from "../lib/api-client.js";
 import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
-import { fmtUsd, fmtPct } from "../lib/format.js";
+import { firstOf, fmtPct, fmtUsd, positive } from "../lib/format.js";
 
 interface MetricsResponse {
   vvvPrice: number;
@@ -24,19 +24,21 @@ export function registerPriceTool(server: McpServer) {
     async () => {
       try {
         const data = await apiGet<MetricsResponse>("/api/metrics");
+        // The API sends 0 when it has no price, and then the figures built on it are 0 too.
+        const usd = (v: unknown): string => fmtUsd(positive(v));
 
         const lines = [
-          `## VVV Price (VeniceStats): ${fmtUsd(data.vvvPrice)} (${fmtPct(data.priceChange24h)})`,
-          `Market Cap: ${fmtUsd(data.marketCap)} | FDV: ${fmtUsd(data.fdv)}`,
+          `## VVV Price (VeniceStats): ${usd(data.vvvPrice)} (${fmtPct(data.priceChange24h)})`,
+          `Market Cap: ${usd(data.marketCap)} | FDV: ${usd(data.fdv)}`,
           "",
-          `## DIEM Price (VeniceStats): ${fmtUsd(data.diemPrice)} (${fmtPct(data.diemPriceChange24h)})`,
-          `Market Cap: ${fmtUsd(data.diemMarketCap)} | FDV: ${fmtUsd(data.diemFdv)}`,
+          `## DIEM Price (VeniceStats): ${usd(data.diemPrice)} (${fmtPct(data.diemPriceChange24h)})`,
+          `Market Cap: ${usd(data.diemMarketCap)} | FDV: ${usd(data.diemFdv)}`,
         ];
 
         lines.push("", deepLinkLine("/"));
 
-        if (data.priceStale) {
-          lines.push("", "⚠️ Price data may be stale — last updated: " + (data.priceLastUpdated ?? "unknown"));
+        if (data.priceStale === true) {
+          lines.push("", "⚠️ Price data may be stale — last updated: " + firstOf([data.priceLastUpdated], "unknown"));
         }
 
         return brandedResponse(lines.join("\n"), {

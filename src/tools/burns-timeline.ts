@@ -2,25 +2,24 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
 import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
-import { fmtUsd, fmtToken } from "../lib/format.js";
+import { NA, countOf, fmtCount, fmtDate, fmtToken, fmtUsd, positive, rows, sumAll } from "../lib/format.js";
 
-interface Bucket {
-  t: number;
+interface Channels {
   discUsdThen: number;
   discUsdNow: number;
   discVvv: number;
   proSubUsdThen: number;
   proSubUsdNow: number;
   proSubVvv: number;
+  proSubCount: number;
+  creditsUsdThen: number;
+  creditsUsdNow: number;
+  creditsVvv: number;
+  creditsCount: number;
 }
 
-interface Totals {
-  discUsdThen: number;
-  discUsdNow: number;
-  discVvv: number;
-  proSubUsdThen: number;
-  proSubUsdNow: number;
-  proSubVvv: number;
+interface Bucket extends Channels {
+  t: number;
 }
 
 interface StreamProjection {
@@ -30,33 +29,28 @@ interface StreamProjection {
 }
 
 interface BurnsTimelineResponse {
-  granularity: "daily" | "weekly" | "monthly";
-  range: "30d" | "90d" | "all";
   buckets: Bucket[];
+  /** What is still to come in the bucket in progress, on top of what it already has. */
   currentBucketProjection: {
-    bucketT: number;
     discProjected: StreamProjection;
     proSubProjected: StreamProjection;
   } | null;
-  totals: Totals;
+  creditsProjection: StreamProjection | null;
+  totals: Channels;
   meta: {
     vvvPriceNow: number;
-    startTs: number | null;
-    endTs: number | null;
   };
 }
 
-function fmtBucketDate(t: number, gran: "daily" | "weekly" | "monthly"): string {
-  const d = new Date(t);
-  const iso = d.toISOString().slice(0, 10);
-  if (gran === "monthly") return iso.slice(0, 7);
-  return iso;
+function fmtBucketDate(t: unknown, gran: "daily" | "weekly" | "monthly"): string {
+  const iso = fmtDate(t);
+  return gran === "monthly" && iso !== NA ? iso.slice(0, 7) : iso;
 }
 
 export function registerBurnsTimelineTool(server: McpServer) {
   server.tool(
     "venicestats_burns_timeline",
-    "Returns the aggregated Venice buy-and-burn timeline from VeniceStats.com — historical buckets (daily/weekly/monthly) that combine both burn channels: discretionary (CoW-Swap TWAP monthly cycle, continuous since Nov 2025) and Pro Sub ($1-per-new-subscription programmatic, since 2026-04-12). Each bucket reports VVV burned plus two USD modes: USD-then (USDC paid at the time) and USD-now (VVV value at current price, to show destroyed value at today's marks). Also returns all-time totals across both channels and a current-bucket projection when available. Use for questions about historical burn volume trends, month-over-month pace, the relative contribution of each channel, or 'how much has Venice burned this month/quarter/since launch?'. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
+    "Returns the aggregated Venice buy-and-burn timeline from VeniceStats.com — historical buckets (daily/weekly/monthly) per burn channel: discretionary (CoW-Swap TWAP monthly cycle), Pro Sub (programmatic buyback on each new subscription) and credits (programmatic buyback on API credit purchases). Each bucket reports VVV plus two USD modes: USD-then (USDC paid at the time) and USD-now (VVV value at current price). Also returns all-time totals and a projection of what is still to come in the current bucket when available. Use for questions about historical burn volume trends, month-over-month pace, the relative contribution of each channel, or 'how much has Venice burned this month/quarter/since launch?'. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     {
       granularity: z
         .enum(["daily", "weekly", "monthly"])
@@ -74,7 +68,7 @@ export function registerBurnsTimelineTool(server: McpServer) {
         .min(1)
         .max(200)
         .default(30)
-        .describe("Maximum buckets to include in the output table (most recent first)."),
+        .describe("Maximum buckets to include in the output table (the most recent ones)."),
     },
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     async ({ granularity, range, limit }) => {
@@ -84,50 +78,49 @@ export function registerBurnsTimelineTool(server: McpServer) {
           range,
         });
 
-        const recent = d.buckets.slice(-limit);
+        // "At current price" needs a price: the API multiplies by 0 when it has none.
+        const priced = positive(d.meta?.vvvPriceNow) !== null;
+        const usdNow = (v: unknown): string => (priced ? fmtUsd(v) : NA);
+
+        const buckets = rows(d.buckets);
+        const recent = buckets.slice(-limit);
+        const t = d.totals;
         const lines: string[] = [
           `## Venice Burns Timeline — ${granularity} (${range})`,
-          `Showing ${recent.length} most recent of ${d.buckets.length} buckets.`,
+          `Showing ${countOf(d.buckets) === null ? NA : recent.length} most recent of ${fmtCount(countOf(d.buckets))} buckets.`,
+          "",
+          `### All-time Totals`,
+          `Discretionary: ${fmtToken(t?.discVvv, "VVV")} bought (burned once a month, so part may still be queued) · ${fmtUsd(t?.discUsdThen)} USDC paid · ${usdNow(t?.discUsdNow)} at current price`,
+          `Pro Sub: ${fmtToken(t?.proSubVvv, "VVV")} burned in ${fmtCount(t?.proSubCount)} burns · ${fmtUsd(t?.proSubUsdThen)} at-time · ${usdNow(t?.proSubUsdNow)} at current price`,
+          `Credits: ${fmtToken(t?.creditsVvv, "VVV")} burned in ${fmtCount(t?.creditsCount)} burns · ${fmtUsd(t?.creditsUsdThen)} at-time · ${usdNow(t?.creditsUsdNow)} at current price`,
+          `Combined (the channels above): ${fmtToken(sumAll(t?.discVvv, t?.proSubVvv, t?.creditsVvv), "VVV")} · worth ${usdNow(sumAll(t?.discUsdNow, t?.proSubUsdNow, t?.creditsUsdNow))} at current price`,
           "",
         ];
 
-        lines.push(`### All-time Totals (both channels)`);
-        lines.push(
-          `Discretionary: ${fmtToken(d.totals.discVvv, "VVV")} burned · ${fmtUsd(d.totals.discUsdThen)} USDC paid · ${fmtUsd(d.totals.discUsdNow)} at current price`,
-        );
-        lines.push(
-          `Pro Sub: ${fmtToken(d.totals.proSubVvv, "VVV")} burned · ${fmtUsd(d.totals.proSubUsdThen)} at-time · ${fmtUsd(d.totals.proSubUsdNow)} at current price`,
-        );
-        const combinedVvv = d.totals.discVvv + d.totals.proSubVvv;
-        const combinedUsdNow = d.totals.discUsdNow + d.totals.proSubUsdNow;
-        lines.push(
-          `Combined: ${fmtToken(combinedVvv, "VVV")} destroyed · worth ${fmtUsd(combinedUsdNow)} at current price`,
-        );
-        lines.push("");
-
         if (recent.length > 0) {
           lines.push(`### Buckets`);
-          lines.push(`| Period | Disc VVV | Disc USD (then) | Pro Sub VVV | Pro Sub count | Combined USD (now) |`);
-          lines.push(`|--------|----------|-----------------|-------------|---------------|--------------------|`);
+          lines.push(`| Period | Disc VVV | Disc USD (then) | Pro Sub VVV | Pro Sub burns | Credits VVV | Credits burns | Combined USD (now) |`);
+          lines.push(`|--------|----------|-----------------|-------------|---------------|-------------|---------------|--------------------|`);
           for (const b of recent) {
-            const combined = b.discUsdNow + b.proSubUsdNow;
+            const combined = sumAll(b.discUsdNow, b.proSubUsdNow, b.creditsUsdNow);
             lines.push(
-              `| ${fmtBucketDate(b.t, granularity)} | ${fmtToken(b.discVvv)} | ${fmtUsd(b.discUsdThen)} | ${fmtToken(b.proSubVvv)} | ${Math.round(b.proSubUsdThen)} | ${fmtUsd(combined)} |`,
+              `| ${fmtBucketDate(b.t, granularity)} | ${fmtToken(b.discVvv)} | ${fmtUsd(b.discUsdThen)} | ${fmtToken(b.proSubVvv)} | ${fmtCount(b.proSubCount)} | ${fmtToken(b.creditsVvv)} | ${fmtCount(b.creditsCount)} | ${usdNow(combined)} |`,
             );
           }
           lines.push("");
         }
 
-        if (d.currentBucketProjection) {
-          const disc = d.currentBucketProjection.discProjected;
-          const pro = d.currentBucketProjection.proSubProjected;
-          lines.push(`### Current bucket projection (end-of-period)`);
-          lines.push(
-            `Discretionary projected: ${fmtToken(disc.vvv, "VVV")} · ${fmtUsd(disc.usdcSpent)} USDC · ${fmtUsd(disc.usdNow)} at current price`,
-          );
-          lines.push(
-            `Pro Sub projected: ${fmtToken(pro.vvv, "VVV")} · ${Math.round(pro.usdcSpent)} burns (~${fmtUsd(pro.usdNow)} at current price)`,
-          );
+        const projected: Array<[string, (typeof d)["creditsProjection"]]> = [
+          ["Discretionary", d.currentBucketProjection?.discProjected],
+          ["Pro Sub", d.currentBucketProjection?.proSubProjected],
+          ["Credits", d.creditsProjection],
+        ];
+        if (projected.some(([, p]) => p !== null && p !== undefined)) {
+          lines.push(`### Still to come in the current bucket (projection, on top of the last row)`);
+          for (const [label, p] of projected) {
+            if (p === null || p === undefined) continue;
+            lines.push(`${label}: ${fmtToken(p.vvv, "VVV")} · ${fmtUsd(p.usdcSpent)} to be spent · ${usdNow(p.usdNow)} at current price`);
+          }
           lines.push("");
         }
 
@@ -135,7 +128,7 @@ export function registerBurnsTimelineTool(server: McpServer) {
 
         return brandedResponse(lines.join("\n"), {
           deepLink: "/burns",
-          tip: "Use venicestats_discretionary_burn for live cycle detail or venicestats_simulate_revenue to model burn coverage against implied ARR.",
+          tip: "Use venicestats_discretionary_burn for live cycle detail or venicestats_burn_stats_by_tier for the subscription tier mix.",
         });
       } catch (err) {
         return errorResponse(err instanceof Error ? err.message : String(err));

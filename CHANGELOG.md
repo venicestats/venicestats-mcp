@@ -2,6 +2,24 @@
 
 All notable changes to this MCP server are documented here.
 
+## [0.8.2] — 2026-11-24
+
+### Fixed
+- All tools: missing API values print `n/a`. No crash, no `null`/`NaN`, no invented zero. Warning line when most values are missing.
+- `market_volume`: no crash when unique traders are not counted (90d/1y/all). Changes shown only with both values.
+- `insider_flow`: flows and volumes labeled in USD (were labeled VVV). Sell trend is a change vs the previous 30 days, not a sell ratio.
+- `burns_timeline`: credits channel added; Pro Sub burns column shows the burn count; projection labeled as what is still to come.
+- `buzz_metrics`: Retweets column (was `undefined`).
+- `social`: API errors are reported as errors.
+- `live`: no placeholder 0% change; stale prices flagged.
+
+### Changed
+- `simulate_revenue`: default churn 5 → 15, same as the site. Leads with modeled revenue today; totals withheld when credits are unknown. Projection labeled as a what-if. Narrative and market cap ÷ ARR removed.
+- `protocol_overview`: P/S from the revenue model, omitted when there is none. Burn run-rate and deflation over every channel when available, otherwise labeled discretionary only.
+- `free_float`: reads the site's fields. Cooldown text 7 days.
+- `burn_stats_by_tier`: reads `/api/burn-stats-by-tier`; says when a window is incomplete.
+- `diem`, `protocol_overview`: "Venice Revenue" is now "Emission haircut on locked sVVV". Cohort labels from the API.
+
 ## [0.7.3] — 2026-05-02
 
 ### Changed

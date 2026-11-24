@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { apiGet } from "../lib/api-client.js";
 import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
-import { fmtToken, fmtPct } from "../lib/format.js";
+import { fmtCount, fmtShare, fmtToken, firstOf, missingList, rows, text } from "../lib/format.js";
 
 interface AirdropResponse {
   kpis: {
@@ -9,7 +9,6 @@ interface AirdropResponse {
     recipients: number;
     avgClaim: number;
     medianClaim: number;
-    largestClaim: { address: string; amount: number } | null;
   };
   retention: {
     activeStakers: number;
@@ -24,8 +23,8 @@ interface AirdropResponse {
     allAvgSvvv: number;
     allAvgConviction: number;
   };
-  distribution: { bucket: string; count: number; total: number; pctClaims: number; pctVvv: number }[];
-  topLoyalists: { address: string; airdropAmount: number; currentSvvv: number; conviction: number; growth: number; ensName: string | null }[];
+  distribution: { bucket: string; count: number; pctClaims: number; pctVvv: number }[];
+  topLoyalists: { address: string; airdropAmount: number; currentSvvv: number; growth: number; ensName: string | null }[];
 }
 
 export function registerAirdropTool(server: McpServer) {
@@ -38,29 +37,31 @@ export function registerAirdropTool(server: McpServer) {
         const d = await apiGet<AirdropResponse>("/api/airdrop", { mode: "overview" });
         const k = d.kpis;
         const r = d.retention;
+        const cmp = d.comparison;
 
         const lines = [
           `## VVV Airdrop`,
-          `Distributed: ${fmtToken(k.totalDistributed, "VVV")} to ${k.recipients.toLocaleString()} recipients`,
-          `Average: ${fmtToken(k.avgClaim, "VVV")} | Median: ${fmtToken(k.medianClaim, "VVV")}`,
+          `Distributed: ${fmtToken(k?.totalDistributed, "VVV")} to ${fmtCount(k?.recipients)} recipients`,
+          `Average: ${fmtToken(k?.avgClaim, "VVV")} | Median: ${fmtToken(k?.medianClaim, "VVV")}`,
           "",
           `## Retention`,
-          `Active Stakers: ${r.activeStakers.toLocaleString()} (${fmtPct(r.retainedPct)}) | DIEM Only: ${r.diemOnly} | Inactive: ${r.inactive.toLocaleString()}`,
-          `Loyalists (grew beyond airdrop): ${r.loyalists.toLocaleString()}`,
+          `Active Stakers: ${fmtCount(r?.activeStakers)} (${fmtShare(r?.retainedPct)} of recipients) | DIEM Only: ${fmtCount(r?.diemOnly)} | Inactive: ${fmtCount(r?.inactive)}`,
+          `Loyalists (grew beyond airdrop): ${fmtCount(r?.loyalists)}`,
           "",
           `## Distribution`,
-          ...d.distribution.map((b) => `- ${b.bucket}: ${b.count.toLocaleString()} recipients (${b.pctClaims.toFixed(1)}% of claims, ${b.pctVvv.toFixed(1)}% of VVV)`),
+          ...missingList(d.distribution),
+          ...rows(d.distribution).map((b) => `- ${text(b.bucket)}: ${fmtCount(b.count)} recipients (${fmtShare(b.pctClaims)} of claims, ${fmtShare(b.pctVvv)} of VVV)`),
           "",
           `## Airdrop vs All Holders`,
-          `Airdrop avg sVVV: ${fmtToken(d.comparison.claimerAvgSvvv)} | All avg: ${fmtToken(d.comparison.allAvgSvvv)}`,
-          `Airdrop avg conviction: ${d.comparison.claimerAvgConviction} | All avg: ${d.comparison.allAvgConviction}`,
+          `Airdrop avg sVVV: ${fmtToken(cmp?.claimerAvgSvvv)} | All avg: ${fmtToken(cmp?.allAvgSvvv)}`,
+          `Airdrop avg conviction: ${fmtCount(cmp?.claimerAvgConviction)} | All avg: ${fmtCount(cmp?.allAvgConviction)}`,
         ];
 
-        if (d.topLoyalists.length > 0) {
+        const loyalists = rows(d.topLoyalists).slice(0, 5);
+        if (loyalists.length > 0) {
           lines.push("", `## Top Loyalists`);
-          for (const l of d.topLoyalists.slice(0, 5)) {
-            const name = l.ensName || l.address;
-            lines.push(`- **${name}**: airdrop ${fmtToken(l.airdropAmount)} → now ${fmtToken(l.currentSvvv, "sVVV")} (${l.growth.toLocaleString()}% growth)`);
+          for (const l of loyalists) {
+            lines.push(`- **${firstOf([l.ensName, l.address], "unknown wallet")}**: airdrop ${fmtToken(l.airdropAmount)} → now ${fmtToken(l.currentSvvv, "sVVV")} (${fmtCount(l.growth)}% growth)`);
           }
         }
 

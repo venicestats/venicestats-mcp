@@ -1,10 +1,14 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { apiGet } from "../lib/api-client.js";
 import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
-import { fmtToken, fmtUsd } from "../lib/format.js";
+import { firstOf, fmtCount, fmtFixed, fmtToken, fmtUsd, missingList, num, positive, rows } from "../lib/format.js";
 
 interface Cohort {
+  /** Stable id; show `label`. */
   name: string;
+  label?: string;
+  /** Today's mint rate is in this band. */
+  mintingNow?: boolean;
   walletCount: number;
   totalDiemMinted: number;
   avgBurnRate: number;
@@ -17,7 +21,9 @@ interface Minter {
   svvvLocked: number;
   outstandingDiem: number;
   burnRate: number;
+  /** Stable id; show `badgeLabel`. */
   badge: string;
+  badgeLabel?: string;
   inferencePerDay: number;
 }
 
@@ -25,37 +31,43 @@ interface DiemResponse {
   cohorts: Cohort[];
   topMinters: Minter[];
   totalLockedSvvv: number;
-  veniceRevenue20Pct: number;
+  /** Haircut on the emissions of locked sVVV, USD per year. */
+  veniceRevenue20Pct: number | null;
   currentMintRate: number;
 }
 
 export function registerDiemTool(server: McpServer) {
   server.tool(
     "venicestats_diem",
-    "Returns DIEM minting analytics from VeniceStats.com — cohort breakdown (Genesis to Current), top minters, burn rates, Venice revenue. Use when someone asks about DIEM minting or cohorts. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
+    "Returns DIEM minting analytics from VeniceStats.com — cohort breakdown (bands of the rate each wallet minted at), top minters, burn rates, and the emission haircut on locked sVVV. Use when someone asks about DIEM minting or cohorts. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     async () => {
       try {
         const d = await apiGet<DiemResponse>("/api/diem-analytics");
+        const mintRate = positive(d.currentMintRate);
 
         const lines = [
           `## DIEM Minting Overview`,
-          `Current Mint Rate: ${Math.round(d.currentMintRate)} sVVV per DIEM`,
+          `Current Mint Rate: ${fmtFixed(mintRate, 0, " sVVV per DIEM")}`,
           `Total Locked: ${fmtToken(d.totalLockedSvvv, "sVVV")}`,
-          `Venice Revenue (20% haircut): ${fmtUsd(d.veniceRevenue20Pct)}/year`,
+          `Emission haircut on locked sVVV (kept by Venice, not total revenue): ${fmtUsd(d.veniceRevenue20Pct)}/year`,
           "",
-          `## Cohorts`,
+          `## Cohorts (by the rate each wallet minted at)`,
+          ...missingList(d.cohorts),
         ];
 
-        for (const c of d.cohorts) {
-          lines.push(`- **${c.name}**: ${c.walletCount} wallets, ${fmtToken(c.totalDiemMinted, "DIEM")} minted, avg burn rate ${Math.round(c.avgBurnRate)} sVVV/DIEM, ${Math.round(c.stillLockedPct * 100)}% still locked`);
+        for (const c of rows(d.cohorts)) {
+          const now = c.mintingNow === true ? (mintRate === null ? " (minting now)" : ` (minting now at ${Math.round(mintRate)})`) : "";
+          const locked = num(c.stillLockedPct);
+          lines.push(`- **${firstOf([c.label, c.name], "unnamed cohort")}**${now}: ${fmtCount(c.walletCount)} wallets, ${fmtToken(c.totalDiemMinted, "DIEM")} minted, avg burn rate ${fmtFixed(c.avgBurnRate, 0)} sVVV/DIEM, ${fmtFixed(locked === null ? null : locked * 100, 0, "%")} still locked`);
         }
 
-        lines.push("", `## Top 10 Minters`);
-        for (const m of d.topMinters.slice(0, 10)) {
-          const name = m.ensName || m.address;
-          const inference = m.inferencePerDay > 0 ? ` | $${Math.round(m.inferencePerDay)}/day inference` : "";
-          lines.push(`- **${name}** (${m.badge}): ${fmtToken(m.outstandingDiem, "DIEM")} outstanding, ${fmtToken(m.svvvLocked, "sVVV")} locked, rate ${Math.round(m.burnRate)}${inference}`);
+        lines.push("", `## Top Minters`, ...missingList(d.topMinters));
+        for (const m of rows(d.topMinters).slice(0, 10)) {
+          const name = firstOf([m.ensName, m.address], "unknown wallet");
+          const badge = firstOf([m.badgeLabel, m.badge], "no cohort");
+          const inference = positive(m.inferencePerDay);
+          lines.push(`- **${name}** (${badge}): ${fmtToken(m.outstandingDiem, "DIEM")} outstanding, ${fmtToken(m.svvvLocked, "sVVV")} locked, rate ${fmtFixed(m.burnRate, 0)}${inference === null ? "" : ` | $${Math.round(inference)}/day inference`}`);
         }
 
         lines.push("", deepLinkLine("/diem"));

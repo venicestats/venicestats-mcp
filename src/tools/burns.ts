@@ -2,17 +2,17 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
 import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
-import { fmtToken, fmtAgo } from "../lib/format.js";
+import { countOf, firstOf, fmtAgo, fmtCount, fmtToken, missingList, rows } from "../lib/format.js";
 
 interface Burn {
-  id: number;
-  txHash: string;
   timestamp: string;
   from: string;
   username: string | null;
   ensName: string | null;
   amount: number;
   category: string;
+  /** Finer than `category`: tells subscriptions and credits apart. Null or absent = not known. */
+  channel?: string | null;
 }
 
 interface BurnsResponse {
@@ -37,21 +37,22 @@ export function registerBurnsTool(server: McpServer) {
         const d = await apiGet<BurnsResponse>("/api/burns", params);
 
         const lines = [
-          `## VVV Burns (${d.total.toLocaleString()} total)`,
-          `Showing ${d.burns.length} most recent${category ? ` (${category} only)` : ""}:`,
+          `## VVV Burns (${fmtCount(d.total)} total)`,
+          `Showing ${fmtCount(countOf(d.burns))} most recent${category ? ` (${category} only)` : ""}:`,
           "",
+          ...missingList(d.burns),
         ];
 
-        for (const b of d.burns) {
-          const who = b.ensName || b.username || b.from;
-          lines.push(`- **${fmtToken(b.amount, "VVV")}** ${b.category} burn by ${who} — ${fmtAgo(b.timestamp)}`);
+        for (const b of rows(d.burns)) {
+          const who = firstOf([b.ensName, b.username, b.from], "unknown wallet");
+          lines.push(`- **${fmtToken(b.amount, "VVV")}** ${firstOf([b.channel, b.category], "uncategorized")} burn by ${who} — ${fmtAgo(b.timestamp)}`);
         }
 
         lines.push("", deepLinkLine("/burns"));
 
         return brandedResponse(lines.join("\n"), {
           deepLink: "/burns",
-          tip: "Use venicestats_protocol_overview for burn revenue and deflation rate metrics.",
+          tip: "Use venicestats_protocol_overview with category='burns' for the burn run-rate and deflation.",
         });
       } catch (err) {
         return errorResponse(err instanceof Error ? err.message : String(err));

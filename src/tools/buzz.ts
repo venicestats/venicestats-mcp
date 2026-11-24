@@ -2,14 +2,13 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
 import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
-import { fmtAgo } from "../lib/format.js";
+import { firstOf, fmtAgo, fmtCount, missingList, positive, rows, str } from "../lib/format.js";
 
 interface BuzzItem {
   type: string;
   title: string;
   url: string;
   summary: string | null;
-  authorName: string | null;
   authorHandle: string | null;
   sourceName: string | null;
   likeCount: number | null;
@@ -42,21 +41,27 @@ export function registerBuzzTool(server: McpServer) {
 
         const typeLabel = type || "all";
         const lines = [
-          `## Venice Buzz — ${typeLabel} (${d.total} total)`,
+          `## Venice Buzz — ${typeLabel} (${fmtCount(d.total)} total)`,
           "",
+          ...missingList(d.items),
         ];
 
-        for (const item of d.items) {
-          const source = item.sourceName || item.authorHandle || "Unknown";
+        for (const item of rows(d.items)) {
+          const source = firstOf([item.sourceName, item.authorHandle], "Unknown");
+          const likes = positive(item.likeCount);
+          const retweets = positive(item.retweetCount);
           const engagement = [
-            item.likeCount ? `${item.likeCount} likes` : null,
-            item.retweetCount ? `${item.retweetCount} RTs` : null,
+            likes !== null ? `${likes} likes` : null,
+            retweets !== null ? `${retweets} RTs` : null,
           ].filter(Boolean).join(", ");
+          const url = str(item.url);
+          const summary = str(item.summary);
 
-          lines.push(`### ${item.title}`);
-          lines.push(`${item.type} by ${source} — ${fmtAgo(item.publishedAt)}${engagement ? ` (${engagement})` : ""}`);
-          if (item.summary) lines.push(item.summary);
-          lines.push(`[Read more](${item.url})`, "");
+          lines.push(`### ${firstOf([item.title], "Untitled")}`);
+          lines.push(`${firstOf([item.type], "item")} by ${source} — ${fmtAgo(item.publishedAt)}${engagement ? ` (${engagement})` : ""}`);
+          if (summary !== null) lines.push(summary);
+          if (url !== null) lines.push(`[Read more](${url})`);
+          lines.push("");
         }
 
         lines.push(deepLinkLine("/buzz"));

@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
 import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
-import { fmtUsd, fmtToken, fmtPct, fmtRatio } from "../lib/format.js";
+import { fmtCount, fmtDate, fmtFixed, fmtPct, fmtRatio, fmtToken, fmtUsd, num, positive, str, type Maybe } from "../lib/format.js";
 
 interface MetricsResponse {
   vvvPrice: number;
@@ -13,8 +13,8 @@ interface MetricsResponse {
   circulatingSupply: number;
   burnedSupply: number;
   totalStaked: number;
-  stakingRatio: number;
-  stakerApr: number;
+  stakingRatio: number | null;
+  stakerApr: number | null;
   svvvLocked: number;
   lockRatio: number;
   emissionPerYear: number;
@@ -30,11 +30,31 @@ interface MetricsResponse {
   remainingMintable: number;
   totalBurnedFromEvents: number;
   organicBurned: number;
-  burnRevenueAnnualized: number;
+  /** Discretionary burns only: their USD value, not revenue. */
+  burnUsdValueAnnualized: number;
+  burnUsdValueSampleMonths: number;
+  /** Discretionary burns only. */
   burnDeflationRate: number;
+  /** Every burn channel, last 30 days. Absent on older APIs, null when not known. */
+  burnRunRate30d?: {
+    windowDays: number;
+    usd: number;
+    vvv: number;
+    usdPerYear: number;
+    vvvPerYear: number;
+    deflationPctPerYear: number;
+  } | null;
   ecosystemTvl: number;
-  veniceRevenue: number;
-  peRatio: number;
+  /** Haircut on the emissions of locked sVVV, USD per year. */
+  veniceRevenue: number | null;
+  /** Absent on older APIs, null when not known. */
+  revenueModelToday?: {
+    annualUsd: number;
+    psRatio: number;
+    asOf: string;
+    churnPct: number;
+    definition: string;
+  } | null;
   impliedConfidence: number;
   netFlow7d: number;
   newStakers7dCount: number;
@@ -46,68 +66,97 @@ interface MetricsResponse {
   vestingTotalLocked: number;
   vestingDailyDrip: number;
   vestingActiveStreams: number;
-  lastUpdated: string | null;
 }
+
+type Metrics = NonNullable<Maybe<MetricsResponse>>;
 
 const CATEGORIES = ["token", "staking", "diem", "burns", "economics", "growth", "vesting"] as const;
 
-function formatCategory(cat: string, d: MetricsResponse): string[] {
+function burnPaceLines(d: Metrics): string[] {
+  const r = d.burnRunRate30d;
+  if (r !== null && r !== undefined) {
+    return [
+      `Burn run-rate (every buy-and-burn channel, last ${fmtCount(r.windowDays)} days): ${fmtToken(r.vvv, "VVV")} (${fmtUsd(r.usd)}) → ${fmtToken(r.vvvPerYear, "VVV")} (${fmtUsd(r.usdPerYear)}) per year`,
+      `Deflation at that pace: ${fmtFixed(r.deflationPctPerYear, 2, "%")} of circulating supply per year`,
+    ];
+  }
+  const months = positive(d.burnUsdValueSampleMonths);
+  return [
+    `Discretionary burns only, annualized${months === null ? "" : ` from a ${fmtCount(months)}-month average`}: ${fmtUsd(d.burnUsdValueAnnualized)} of VVV (other burn channels not included; not revenue)`,
+    `Deflation from discretionary burns only: ${fmtFixed(d.burnDeflationRate, 2, "%")}/year`,
+  ];
+}
+
+// The older `peRatio` divides market cap by discretionary burns, which are not revenue:
+// it is not a P/S ratio and is not shown. Without the revenue model there is no P/S line.
+function revenueLines(d: Metrics): string[] {
+  const m = d.revenueModelToday;
+  const annual = positive(m?.annualUsd);
+  if (!m || annual === null) return [];
+  const lines = [`Modeled revenue today: ${fmtUsd(annual)}/year annualized (as of ${fmtDate(m.asOf)}; a model, not reported revenue)`];
+  const ps = positive(m.psRatio);
+  if (ps !== null) {
+    lines.push(`P/S Ratio: ${ps.toFixed(1)}x — ${str(m.definition) ?? "market cap ÷ modeled annualized revenue today"}`);
+  }
+  return lines;
+}
+
+function formatCategory(cat: string, d: Metrics): string[] {
   switch (cat) {
     case "token":
       return [
         `## Token`,
-        `Price: ${fmtUsd(d.vvvPrice)} (${fmtPct(d.priceChange24h)})`,
-        `Market Cap: ${fmtUsd(d.marketCap)} | FDV: ${fmtUsd(d.fdv)}`,
+        `Price: ${fmtUsd(positive(d.vvvPrice))} (${fmtPct(d.priceChange24h)})`,
+        `Market Cap: ${fmtUsd(positive(d.marketCap))} | FDV: ${fmtUsd(positive(d.fdv))}`,
         `Total Supply: ${fmtToken(d.totalSupply, "VVV")}`,
         `Circulating: ${fmtToken(d.circulatingSupply)} | Burned: ${fmtToken(d.burnedSupply)}`,
       ];
     case "staking":
       return [
         `## Staking`,
-        `Total Staked: ${fmtToken(d.totalStaked, "sVVV")} (${fmtRatio(d.stakingRatio)})`,
-        `APR: ${d.stakerApr.toFixed(1)}% | Locked: ${fmtToken(d.svvvLocked)} (${fmtRatio(d.lockRatio)})`,
+        `Total Staked: ${fmtToken(d.totalStaked, "sVVV")} (staking ratio ${fmtRatio(d.stakingRatio)})`,
+        `APR: ${fmtFixed(d.stakerApr, 1, "%")} | Locked: ${fmtToken(d.svvvLocked)} (${fmtRatio(d.lockRatio)})`,
         `Emission: ${fmtToken(d.emissionPerYear, "VVV")}/year`,
       ];
-    case "diem":
+    case "diem": {
+      const parity = num(d.mintParity);
       return [
         `## DIEM`,
-        `Price: ${fmtUsd(d.diemPrice)} (${fmtPct(d.diemPriceChange24h)})`,
+        `Price: ${fmtUsd(positive(d.diemPrice))} (${fmtPct(d.diemPriceChange24h)})`,
         `Supply: ${fmtToken(d.diemSupply, "DIEM")} | Staked: ${fmtToken(d.diemStaked)} (${fmtRatio(d.diemStakeRatio)})`,
-        `Mint Rate: ${Math.round(d.mintRate)} sVVV/DIEM | Mint Cost: ${fmtUsd(d.mintCostUsd)}`,
-        `Market Discount: ${fmtRatio(1 - d.mintParity)} vs mint cost`,
-        `Break-even: ${d.diemBreakEvenDays} days | Remaining mintable: ${fmtToken(d.remainingMintable, "DIEM")}`,
+        `Mint Rate: ${fmtFixed(positive(d.mintRate), 0)} sVVV/DIEM | Mint Cost: ${fmtUsd(positive(d.mintCostUsd))}`,
+        `Market Discount: ${fmtRatio(parity === null ? null : 1 - parity)} vs mint cost`,
+        `Break-even: ${fmtCount(positive(d.diemBreakEvenDays))} days | Remaining mintable: ${fmtToken(d.remainingMintable, "DIEM")}`,
       ];
+    }
     case "burns":
       return [
-        `## Burns & Revenue`,
-        `Total Burned: ${fmtToken(d.totalBurnedFromEvents, "VVV")} (${fmtToken(d.organicBurned)} organic)`,
-        `Annualized Revenue: ${fmtUsd(d.burnRevenueAnnualized)}`,
-        `Deflation Rate: ${d.burnDeflationRate.toFixed(2)}%/year`,
+        `## Burns`,
+        `Total Burned: ${fmtToken(d.totalBurnedFromEvents, "VVV")} (${fmtToken(d.organicBurned)} from discretionary buy-and-burn)`,
+        ...burnPaceLines(d),
       ];
     case "economics":
       return [
         `## Economics`,
-        `Ecosystem TVL: ${fmtUsd(d.ecosystemTvl)}`,
-        `Venice Revenue (est.): ${fmtUsd(d.veniceRevenue)}/year`,
-        // peRatio field name is legacy; conceptually it's Price-to-Sales
-        // (marketCap / annualised burn revenue, not earnings).
-        `P/S Ratio: ${d.peRatio.toFixed(1)}x (mkt cap ÷ annualised burn revenue; this is P/S — Venice doesn't publish net earnings)`,
-        `Implied Confidence: ${d.impliedConfidence.toFixed(2)}x`,
+        `Ecosystem TVL: ${fmtUsd(positive(d.ecosystemTvl))}`,
+        ...revenueLines(d),
+        `Emission haircut on locked sVVV (kept by Venice, not total revenue): ${fmtUsd(d.veniceRevenue)}/year`,
+        `DIEM Implied Confidence: ${fmtFixed(positive(d.impliedConfidence), 2, "x")}`,
       ];
     case "growth":
       return [
         `## Growth & Activity`,
         `Net Flow (7d): ${fmtToken(d.netFlow7d, "VVV")}`,
         `Staking Growth: 7d ${fmtPct(d.stakingGrowth7d)} | 30d ${fmtPct(d.stakingGrowth30d)}`,
-        `New Stakers (7d): ${d.newStakers7dCount} | Active Wallets: ${d.activeWallets7dCount}`,
-        `Cooldown: ${fmtToken(d.cooldownVvv, "VVV")} across ${d.cooldownWallets} wallets`,
+        `New Stakers (7d): ${fmtCount(d.newStakers7dCount)} | Active Wallets: ${fmtCount(d.activeWallets7dCount)}`,
+        `Cooldown: ${fmtToken(d.cooldownVvv, "VVV")} across ${fmtCount(d.cooldownWallets)} wallets`,
       ];
     case "vesting":
       return [
         `## Vesting`,
         `Locked: ${fmtToken(d.vestingTotalLocked, "VVV")}`,
         `Daily Drip: ${fmtToken(d.vestingDailyDrip, "VVV")}/day`,
-        `Active Streams: ${d.vestingActiveStreams}`,
+        `Active Streams: ${fmtCount(d.vestingActiveStreams)}`,
       ];
     default:
       return [];
@@ -132,9 +181,11 @@ export function registerProtocolOverviewTool(server: McpServer) {
 
         return brandedResponse(sections.join("\n"), {
           deepLink: "/",
-          tip: category
-            ? `Omit the category parameter to see the full protocol overview.`
-            : "Use venicestats_price for a quick price check, or venicestats_wallet to look up a specific holder.",
+          tip: category === "economics"
+            ? "Use venicestats_simulate_revenue for the breakdown of modeled revenue today."
+            : category
+              ? "Omit the category parameter to see the full protocol overview."
+              : "Use venicestats_price for a quick price check, or venicestats_wallet to look up a specific holder.",
         });
       } catch (err) {
         return errorResponse(err instanceof Error ? err.message : String(err));

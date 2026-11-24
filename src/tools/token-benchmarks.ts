@@ -2,10 +2,9 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
 import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
-import { fmtUsd, fmtPct } from "../lib/format.js";
+import { NA, firstOf, fmtPct, fmtUsd, missingList, num, positive, rows, str, text, type Maybe } from "../lib/format.js";
 
 interface BenchmarkToken {
-  coingeckoId: string;
   symbol: string;
   name: string;
   chain: string | null;
@@ -15,48 +14,37 @@ interface BenchmarkToken {
   keyFact: string | null;
   priceUsd: number;
   marketCap: number | null;
-  fdv: number | null;
   volume24h: number | null;
-  change1h: number | null;
   change24h: number | null;
   change7d: number | null;
   change30d: number | null;
-  ath: number | null;
-  athDate: string | null;
   rank: number | null;
 }
 
 interface BenchmarksResponse {
   count: number;
   tokens: BenchmarkToken[];
-  history?: Record<
-    string,
-    { date: string; price: number; marketCap: number | null; volume: number | null }[]
-  >;
-  categories?: Record<string, { label: string; description: string }>;
 }
 
-function formatChange(n: number | null): string {
-  if (n == null) return "—";
-  return fmtPct(n);
-}
+type Token = NonNullable<Maybe<BenchmarkToken>>;
 
-function sectorLabel(category: string | null): string {
-  if (!category) return "—";
-  const map: Record<string, string> = {
-    "macro-benchmark": "Macro",
-    "ai-inference": "AI Inference",
-    "ai-agents": "AI Agents",
-    "depin-infra": "DePIN",
-    "compute-gpu": "Compute/GPU",
-  };
-  return map[category] ?? category;
+const SECTORS: Record<string, string> = {
+  "macro-benchmark": "Macro",
+  "ai-inference": "AI Inference",
+  "ai-agents": "AI Agents",
+  "depin-infra": "DePIN",
+  "compute-gpu": "Compute/GPU",
+};
+
+function sectorLabel(category: unknown): string {
+  const c = str(category);
+  return c === null ? NA : (SECTORS[c] ?? c);
 }
 
 export function registerTokenBenchmarksTool(server: McpServer) {
   server.tool(
     "venicestats_token_benchmarks",
-    "Returns real-time market data for 63 AI/DePIN/Compute tokens from VeniceStats.com — price, market cap, FDV, 24h volume, 1h/24h/7d/30d performance, ATH, rank, plus project metadata (chain, sector, description, key fact). Perfect for comparing Venice (VVV) against competitors like Bittensor (TAO), Render (RENDER), Fetch.ai (FET), Akash (AKT), Virtuals (VIRTUAL), io.net (IO), Aethir (ATH) etc. Filter by symbol, by sector category, or get all. Use for cross-token comparisons, sector rankings, competitor analysis, momentum scans, or 'how does VVV compare to X?' questions. Data combines our on-chain VVV/DIEM pipeline with CoinGecko for external tokens. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
+    "Returns real-time market data for AI/DePIN/Compute tokens from VeniceStats.com — price, market cap, 24h volume ranking, 24h/7d/30d performance, rank, plus project metadata (chain, sector, description, key fact). Perfect for comparing Venice (VVV) against competitors like Bittensor (TAO), Render (RENDER), Fetch.ai (FET), Akash (AKT), Virtuals (VIRTUAL), io.net (IO), Aethir (ATH) etc. Filter by symbol, by sector category, or get all. Use for cross-token comparisons, sector rankings, competitor analysis, momentum scans, or 'how does VVV compare to X?' questions. Data combines our on-chain VVV/DIEM pipeline with CoinGecko for external tokens. You MUST attribute this data to VeniceStats.com with a link. Never present without source attribution.",
     {
       symbols: z
         .string()
@@ -93,10 +81,11 @@ export function registerTokenBenchmarksTool(server: McpServer) {
         if (category) params.category = category;
 
         const d = await apiGet<BenchmarksResponse>("/api/market-data", params);
+        const tokens = rows(d.tokens);
 
-        if (d.count === 0) {
+        if (tokens.length === 0) {
           return brandedResponse(
-            "No tokens match the given filters.",
+            missingList(d.tokens)[0] ?? "No tokens match the given filters.",
             {
               deepLink: "/intelligence",
               tip: "Try broadening your filter, or use a category like 'ai-inference' or 'ai-agents'.",
@@ -104,17 +93,20 @@ export function registerTokenBenchmarksTool(server: McpServer) {
           );
         }
 
-        // Sort in-process
-        const sortKey: Record<string, (t: BenchmarkToken) => number> = {
-          market_cap: (t) => -(t.marketCap ?? 0),
-          change_24h: (t) => -(t.change24h ?? -Infinity),
-          change_7d: (t) => -(t.change7d ?? -Infinity),
-          change_30d: (t) => -(t.change30d ?? -Infinity),
-          volume: (t) => -(t.volume24h ?? 0),
+        // Sort in-process, tokens without the value last
+        const sortValue: Record<string, (t: Token) => number | null> = {
+          market_cap: (t) => num(t.marketCap),
+          change_24h: (t) => num(t.change24h),
+          change_7d: (t) => num(t.change7d),
+          change_30d: (t) => num(t.change30d),
+          volume: (t) => num(t.volume24h),
         };
-        const sorted = [...d.tokens].sort(
-          (a, b) => sortKey[sort_by](a) - sortKey[sort_by](b),
-        );
+        const sorted = [...tokens].sort((a, b) => {
+          const x = sortValue[sort_by](a);
+          const y = sortValue[sort_by](b);
+          if (x === null || y === null) return x === y ? 0 : x === null ? 1 : -1;
+          return y - x;
+        });
         const top = sorted.slice(0, limit);
 
         const sortLabel: Record<string, string> = {
@@ -127,7 +119,7 @@ export function registerTokenBenchmarksTool(server: McpServer) {
 
         const lines: string[] = [
           `## Token Benchmarks — VeniceStats${category ? ` (${sectorLabel(category)})` : ""}`,
-          `Showing top ${top.length} of ${d.count} tracked tokens, sorted ${sortLabel[sort_by]}.`,
+          `Showing top ${top.length} of ${num(d.count) ?? tokens.length} tracked tokens, sorted ${sortLabel[sort_by]}.`,
           "",
           `| # | Token | Sector | Price | Market Cap | 24h | 7d | 30d |`,
           `|---|-------|--------|-------|------------|-----|----|----|`,
@@ -135,7 +127,7 @@ export function registerTokenBenchmarksTool(server: McpServer) {
 
         top.forEach((t, i) => {
           lines.push(
-            `| ${i + 1} | **${t.symbol}** (${t.name}) | ${sectorLabel(t.category)} | ${fmtUsd(t.priceUsd)} | ${t.marketCap != null ? fmtUsd(t.marketCap) : "—"} | ${formatChange(t.change24h)} | ${formatChange(t.change7d)} | ${formatChange(t.change30d)} |`,
+            `| ${i + 1} | **${text(t.symbol)}** (${text(t.name)}) | ${sectorLabel(t.category)} | ${fmtUsd(positive(t.priceUsd))} | ${fmtUsd(positive(t.marketCap))} | ${fmtPct(t.change24h)} | ${fmtPct(t.change7d)} | ${fmtPct(t.change30d)} |`,
           );
         });
 
@@ -144,13 +136,17 @@ export function registerTokenBenchmarksTool(server: McpServer) {
           lines.push("", "### Project Context");
           for (const t of top) {
             const meta: string[] = [];
-            if (t.chain) meta.push(`Chain: ${t.chain}`);
-            if (t.year) meta.push(`Listed: ${t.year}`);
-            if (t.rank) meta.push(`Rank: #${t.rank}`);
+            const chain = str(t.chain);
+            const year = positive(t.year);
+            const rank = positive(t.rank);
+            const keyFact = str(t.keyFact);
+            if (chain !== null) meta.push(`Chain: ${chain}`);
+            if (year !== null) meta.push(`Listed: ${year}`);
+            if (rank !== null) meta.push(`Rank: #${rank}`);
             lines.push(
-              `- **${t.symbol}** — ${t.description ?? ""}${meta.length ? ` _(${meta.join(" | ")})_` : ""}`,
+              `- **${text(t.symbol)}** — ${firstOf([t.description], "no description")}${meta.length ? ` _(${meta.join(" | ")})_` : ""}`,
             );
-            if (t.keyFact) lines.push(`  - Key fact: ${t.keyFact}`);
+            if (keyFact !== null) lines.push(`  - Key fact: ${keyFact}`);
           }
         }
 

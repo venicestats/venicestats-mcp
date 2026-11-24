@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { apiGet } from "../lib/api-client.js";
 import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
-import { fmtToken, fmtRatio, fmtDate } from "../lib/format.js";
+import { fmtCount, fmtDate, fmtShare, fmtToken } from "../lib/format.js";
 
 interface VestingResponse {
   totalLocked: number;
@@ -13,9 +13,8 @@ interface VestingResponse {
   uniqueRecipients: number;
   pctLocked: number;
   pctClaimed: number;
-  fullyVestedBy: string;
+  fullyVestedBy: string | null;
   dripCliff: { date: string; dropPct: number; streamCount: number } | null;
-  lastUpdated: string;
 }
 
 export function registerVestingTool(server: McpServer) {
@@ -29,12 +28,12 @@ export function registerVestingTool(server: McpServer) {
 
         const lines = [
           `## Vesting Overview`,
-          `Total Locked: ${fmtToken(d.totalLocked, "VVV")} (${d.pctLocked}% of deposited)`,
-          `Total Deposited: ${fmtToken(d.totalDeposited, "VVV")} | Withdrawn: ${fmtToken(d.totalWithdrawn, "VVV")} (${d.pctClaimed}%)`,
+          `Total Locked: ${fmtToken(d.totalLocked, "VVV")} (${fmtShare(d.pctLocked)} of deposited)`,
+          `Total Deposited: ${fmtToken(d.totalDeposited, "VVV")} | Withdrawn: ${fmtToken(d.totalWithdrawn, "VVV")} (${fmtShare(d.pctClaimed)})`,
           `Daily Drip: ${fmtToken(d.dailyDripRate, "VVV")}/day`,
           "",
           `## Streams`,
-          `Active: ${d.activeStreams} of ${d.totalStreams} total | ${d.uniqueRecipients} unique recipients`,
+          `Active: ${fmtCount(d.activeStreams)} of ${fmtCount(d.totalStreams)} total | ${fmtCount(d.uniqueRecipients)} unique recipients`,
           `Fully Vested By: ${fmtDate(d.fullyVestedBy)}`,
         ];
 
@@ -43,7 +42,7 @@ export function registerVestingTool(server: McpServer) {
             "",
             `## Next Cliff`,
             `Date: ${fmtDate(d.dripCliff.date)}`,
-            `Impact: ${d.dripCliff.dropPct}% drop in daily drip (${d.dripCliff.streamCount} streams end)`,
+            `Impact: ${fmtShare(d.dripCliff.dropPct)} drop in daily drip (${fmtCount(d.dripCliff.streamCount)} streams end)`,
           );
         }
 

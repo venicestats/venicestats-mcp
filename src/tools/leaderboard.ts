@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet } from "../lib/api-client.js";
 import { brandedResponse, errorResponse, deepLinkLine } from "../lib/branding.js";
-import { fmtToken } from "../lib/format.js";
+import { countOf, firstOf, fmtCount, fmtToken, missingList, num, rows, sharePct } from "../lib/format.js";
 
 interface Holder {
   rank: number;
@@ -13,13 +13,11 @@ interface Holder {
   svvvLocked: number;
   diemStaked: number;
   convictionScore: number;
-  firstSeenAt: string;
 }
 
 interface HoldersResponse {
   holders: Holder[];
   totalHolders: number;
-  pagination: { page: number; limit: number; total: number };
 }
 
 export function registerLeaderboardTool(server: McpServer) {
@@ -34,22 +32,25 @@ export function registerLeaderboardTool(server: McpServer) {
     async ({ sort, limit }) => {
       try {
         const d = await apiGet<HoldersResponse>("/api/holders", { sort, limit });
+        const holders = rows(d.holders);
 
         const sortLabel = { svvv: "sVVV Balance", diem: "DIEM Staked", conviction: "Conviction Score", locked: "Locked sVVV" }[sort];
 
         const lines = [
-          `## Venice Leaderboard (VeniceStats) — Top ${d.holders.length} by ${sortLabel}`,
-          `(${d.totalHolders.toLocaleString()} total holders)`,
+          `## Venice Leaderboard (VeniceStats) — Top ${fmtCount(countOf(d.holders))} by ${sortLabel}`,
+          `(${fmtCount(d.totalHolders)} total holders)`,
           "",
+          ...missingList(d.holders),
         ];
 
-        for (const h of d.holders) {
-          const name = h.ensName || h.username || h.address;
-          const lockPct = h.svvvBalance > 0 ? Math.round((h.svvvLocked / h.svvvBalance) * 100) : 0;
+        holders.forEach((h, i) => {
+          const name = firstOf([h.ensName, h.username, h.address], "unknown wallet");
+          const lockPct = sharePct(h.svvvLocked, h.svvvBalance);
+          const locked = lockPct === null ? "" : ` (${Math.round(lockPct)}% locked)`;
           lines.push(
-            `${h.rank}. **${name}** — ${fmtToken(h.svvvBalance, "sVVV")} (${lockPct}% locked) | DIEM: ${fmtToken(h.diemStaked)} staked | Conviction: ${h.convictionScore.toLocaleString()}`,
+            `${num(h.rank) ?? i + 1}. **${name}** — ${fmtToken(h.svvvBalance, "sVVV")}${locked} | DIEM: ${fmtToken(h.diemStaked)} staked | Conviction: ${fmtCount(h.convictionScore)}`,
           );
-        }
+        });
 
         lines.push("", deepLinkLine("/venetians"));
 
